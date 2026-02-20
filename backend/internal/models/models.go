@@ -75,12 +75,10 @@ func (AnalysisToken) TableName() string {
 // Vocabulary words link to this for grade/difficulty lookup.
 type JapaneseDictionary struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
-	Kanji     string    `gorm:"not null;index" json:"kanji"`       // Kanji form (e.g., "日本")
+	Kanji     string    `gorm:"not null;index" json:"kanji"`       // Kanji form (e.g., "日本") or hiragana if no kanji
 	Hiragana  string    `gorm:"not null" json:"hiragana"`          // Hiragana reading (e.g., "にほん")
-	Furigana  string    `gorm:"type:varchar(100)" json:"furigana"` // Optional: furigana for display
 	Meaning   string    `gorm:"not null;type:text" json:"meaning"` // English translation
 	JLPTLevel *int      `gorm:"index" json:"jlpt_level"`           // JLPT N5-N1 (nullable)
-	WordType  string    `gorm:"type:varchar(50)" json:"word_type"` // noun, verb, adjective, etc.
 	CreatedAt time.Time `json:"created_at"`
 }
 

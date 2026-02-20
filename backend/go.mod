@@ -13,12 +13,7 @@ require (
 	gorm.io/gorm v1.31.1
 )
 
-require (
-	github.com/ikawaha/kagome-dict v1.1.7 // indirect
-	github.com/ikawaha/kagome-dict/ipa v1.2.6 // indirect
-	github.com/ikawaha/kagome-dict/uni v1.2.6 // indirect
-	github.com/ikawaha/kagome/v2 v2.10.3 // indirect
-)
+require github.com/ikawaha/kagome-dict v1.1.7 // indirect
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
@@ -34,6 +29,8 @@ require (
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/ikawaha/kagome-dict/ipa v1.2.6
+	github.com/ikawaha/kagome/v2 v2.10.3
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.6.0 // indirect

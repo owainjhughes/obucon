@@ -2,6 +2,7 @@
 -- Reference: https://www.postgresql.org/docs/current/sql-droptable.html
 -- CASCADE option: automatically drops dependent objects
 
+DROP TABLE IF EXISTS japanese_dictionary CASCADE;
 DROP TABLE IF EXISTS analysis_tokens CASCADE;
 DROP TABLE IF EXISTS analyses CASCADE;
 DROP TABLE IF EXISTS vocabulary_items CASCADE;

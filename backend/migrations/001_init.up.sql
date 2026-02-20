@@ -42,10 +42,8 @@ CREATE TABLE japanese_dictionary (
     id SERIAL PRIMARY KEY,
     kanji VARCHAR(50) NOT NULL,
     hiragana VARCHAR(100) NOT NULL,
-    furigana VARCHAR(100),
     meaning TEXT NOT NULL,
     jlpt_level INTEGER CHECK (jlpt_level >= 1 AND jlpt_level <= 5),
-    word_type VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -64,8 +62,9 @@ CREATE INDEX idx_tokens_analysis_id ON analysis_tokens(analysis_id);
 CREATE INDEX idx_tokens_is_known ON analysis_tokens(is_known);
 
 CREATE INDEX idx_japanese_dict_kanji ON japanese_dictionary(kanji);
+CREATE INDEX idx_japanese_dict_hiragana ON japanese_dictionary(hiragana);
 CREATE INDEX idx_japanese_dict_jlpt ON japanese_dictionary(jlpt_level);
-CREATE UNIQUE INDEX idx_japanese_dict_unique ON japanese_dictionary(kanji, hiragana);
+CREATE INDEX idx_japanese_dict_kanji_hiragana ON japanese_dictionary(kanji, hiragana);
 
 -- PostgreSQL trigger to auto-update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
