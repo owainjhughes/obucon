@@ -72,6 +72,7 @@ func (s *authService) Register(ctx context.Context, email, username, password st
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
+	fmt.Print("User Registered: ", user.Email, "\n")
 	return user, nil
 }
 
@@ -101,6 +102,7 @@ func (s *authService) Login(ctx context.Context, email, password string) (string
 		return "", fmt.Errorf("failed to sign token: %w", err)
 	}
 
+	fmt.Print("User Logged In: ", user.Email, "\n")
 	return tokenString, nil
 }
 
@@ -130,6 +132,7 @@ func (s *authService) LoginWithUserID(ctx context.Context, email, password strin
 		return "", 0, fmt.Errorf("failed to sign token: %w", err)
 	}
 
+	fmt.Print("User Logged In: ", user.Email, "\n")
 	return tokenString, user.ID, nil
 }
 
@@ -159,5 +162,6 @@ func (s *authService) ValidateToken(tokenString string) (uint, error) {
 		return 0, errors.New("invalid user_id in token")
 	}
 
+	fmt.Print("Token Validated for User ID: ", uint(userID), "\n")
 	return uint(userID), nil
 }

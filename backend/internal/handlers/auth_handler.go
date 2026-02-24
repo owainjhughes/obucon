@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"obucon/internal/services"
 	"strings"
@@ -54,6 +55,7 @@ func clearAuthCookie(c *gin.Context) {
 
 // Register handles POST /auth/register
 func (h *AuthHandler) Register(c *gin.Context) {
+	fmt.Print("Register endpoint hit\n")
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -75,6 +77,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 // Login handles POST /auth/login
 func (h *AuthHandler) Login(c *gin.Context) {
+	fmt.Print("Login endpoint hit\n")
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -98,12 +101,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // Logout handles POST /auth/logout
 func (h *AuthHandler) Logout(c *gin.Context) {
+	fmt.Print("Logout endpoint hit\n")
 	clearAuthCookie(c)
 	c.JSON(http.StatusOK, gin.H{"status": "logged out"})
 }
 
 // returns current authenticated user
 func (h *AuthHandler) GetMe(c *gin.Context) {
+	fmt.Print("GetMe endpoint hit\n")
 	userID, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
@@ -117,6 +122,7 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 
 // Gin middleware that validates JWT tokens
 func AuthMiddleware(authService services.AuthService) gin.HandlerFunc {
+	fmt.Print("AuthMiddleware initialized\n")
 	return func(c *gin.Context) {
 		tokenString := ""
 		authHeader := c.GetHeader("Authorization")

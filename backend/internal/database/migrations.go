@@ -10,25 +10,9 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-// TODO: Implement RunMigrations function
-//
-// This function should:
-// 1. Create a migration instance pointing to your migrations directory
-// 2. Run any pending migrations up to the latest version
-// 3. Handle errors gracefully (distinguish between "no migrations" vs actual errors)
-//
-// Implementation notes:
-//   - Migration source should be: file:///path/to/backend/migrations
-//   - Database DSN format: postgres://user:password@host:port/dbname?sslmode=disable
-//   - Use migrate.Up() to run all pending migrations
-//   - Check for migrate.ErrNoChange (not an error - means already up to date)
-//
 // Reference:
 //   - golang-migrate docs: https://github.com/golang-migrate/migrate
 //   - Examples: https://github.com/golang-migrate/migrate/tree/master/example
-//
-// Hint: Wrap the migration instance in error handling:
-//
 
 func RunMigrations(cfg *config.Config) error {
 	databaseURL := fmt.Sprintf(

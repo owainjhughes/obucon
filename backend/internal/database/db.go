@@ -9,18 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// InitDB initializes the database connection
-//
-// This function:
-// 1. Builds PostgreSQL connection string from config
-// 2. Connects to the database using GORM
-// 3. Tests the connection with a ping
-// 4. Returns a GORM DB instance
-//
-// TODO: Add migration runner to automatically execute .sql files
-// Consider using github.com/golang-migrate/migrate for migration management
-//
-// Reference:
 // - GORM PostgreSQL docs: https://gorm.io/docs/connecting_to_the_database.html#PostgreSQL
 // - golang-migrate: https://github.com/golang-migrate/migrate
 func InitDB(cfg *config.Config) (*gorm.DB, error) {
