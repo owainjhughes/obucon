@@ -75,6 +75,16 @@ func (s *Service) AnalyzeText(ctx context.Context, userID uint, language, text s
 	}, nil
 }
 
+func (s *Service) ListKnownVocabulary(ctx context.Context, userID uint, language string) ([]VocabEntry, error) {
+	fmt.Print("Analysis Service ListKnownVocabulary Function Reached\n")
+	return s.repo.ListKnownWordsWithMeaning(ctx, userID, language)
+}
+
+func (s *Service) AddBulkKnownVocabulary(ctx context.Context, userID uint, language string, jlptLevel int) (int64, error) {
+	fmt.Print("Analysis Service AddBulkKnownVocabulary Function Reached\n")
+	return s.repo.BulkAddKnownWordsByJLPT(ctx, userID, language, jlptLevel)
+}
+
 func uniqueLemmas(tokens []ja.Token) []string {
 	seen := make(map[string]struct{}, len(tokens))
 	lemmas := make([]string, 0, len(tokens))

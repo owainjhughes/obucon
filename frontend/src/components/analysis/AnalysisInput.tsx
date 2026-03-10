@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { apiClient } from '../../api/client'
+import AnalysisOutput from './AnalysisOutput'
 
 type AnalysisMode = 'text' | 'file' | 'link'
 
@@ -7,6 +8,8 @@ interface Token {
   surface: string
   lemma: string
   pos: string
+  is_known: boolean
+  grade_level?: number | null
 }
 
 interface AnalysisResult {
@@ -41,13 +44,20 @@ export default function AnalysisInput() {
     }
   }
 
+  const resetAnalysis = () => {
+    setResult(null)
+    setError('')
+  }
+
+  if (result) {
+    return <AnalysisOutput tokens={result.tokens} onReset={resetAnalysis} />
+  }
+
   return (
-    <section className="mx-auto max-w-3xl px-4 py-10">
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <section className="px-4 py-10">
+      <div className="mx-auto rounded-xl border border-gray-200 bg-white p-6 shadow-sm max-w-3xl">
         <h2 className="text-lg font-semibold text-gray-900">Analysis</h2>
-        <p className="mt-1 text-sm text-gray-600">
-          Choose a mode to provide your input.
-        </p>
+        <p className="mt-1 text-sm text-gray-600">Choose a mode to provide your input.</p>
 
         <div className="mt-4 flex flex-wrap gap-2">
           <button
@@ -132,25 +142,6 @@ export default function AnalysisInput() {
           {error && (
             <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
-            </div>
-          )}
-
-          {result && (
-            <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">
-                Tokens ({result.total_tokens})
-              </h3>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {result.tokens.map((token, idx) => (
-                  <div key={idx} className="flex items-start gap-3 text-sm bg-white p-2 rounded border border-gray-200">
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-900">{token.surface}</div>
-                      <div className="text-xs text-gray-600">Lemma: {token.lemma}</div>
-                      <div className="text-xs text-gray-500">POS: {token.pos}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
         </div>

@@ -5,8 +5,8 @@ import { useAuth } from "../auth/AuthContext"
 
 const navigation = [
 	{ name: "Home", href: "/" },
-	{ name: "Analyse", href: "/analyse" },
-	{ name: "Vocabulary", href: "/vocab" },
+	{ name: "Analysis", href: "/analysis" },
+	{ name: "Vocabulary", href: "/vocabulary" },
 	{ name: "jWiki", href: "https://ja.wikipedia.org/wiki/%E3%83%A1%E3%82%A4%E3%83%B3%E3%83%9A%E3%83%BC%E3%82%B8"}
 ]
 

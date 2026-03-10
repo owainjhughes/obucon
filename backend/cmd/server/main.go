@@ -63,6 +63,8 @@ func main() {
 	{
 		protected.GET("/auth/me", authHandler.GetMe)
 		protected.POST("/analyze", analysisHandler.AnalyzeText)
+		protected.GET("/vocab", analysisHandler.ListVocabulary)
+		protected.POST("/vocab/bulk", analysisHandler.BulkAddVocabulary)
 	}
 
 	log.Printf("Server starting on port %s", cfg.Port)

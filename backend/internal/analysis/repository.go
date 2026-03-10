@@ -143,6 +143,67 @@ func (r *Repository) GetKnownLemmas(ctx context.Context, userID uint, language s
 	return known, nil
 }
 
+// VocabEntry represents a known word with optional dictionary meaning.
+type VocabEntry struct {
+	Lemma      string `json:"lemma"`
+	GradeLevel *int   `json:"grade_level"`
+	Meaning    string `json:"meaning"`
+}
+
+func (r *Repository) ListKnownWordsWithMeaning(ctx context.Context, userID uint, language string) ([]VocabEntry, error) {
+	fmt.Print("Analysis Repository ListKnownWordsWithMeaning Function Reached\n")
+	var entries []VocabEntry
+
+	switch language {
+	case "ja":
+		err := r.db.WithContext(ctx).
+			Table("known_words").
+			Select("known_words.lemma, known_words.grade_level, coalesce(japanese_dictionary.meaning, '') AS meaning").
+			Joins("LEFT JOIN japanese_dictionary ON known_words.lemma = japanese_dictionary.kanji OR known_words.lemma = japanese_dictionary.hiragana").
+			Where("known_words.user_id = ? AND known_words.language = ?", userID, language).
+			Order("known_words.created_at desc").
+			Scan(&entries).Error
+		if err != nil {
+			return nil, err
+		}
+	default:
+		// Fallback: just return known words without meaning
+		var rows []models.KnownWord
+		err := r.db.WithContext(ctx).
+			Where("user_id = ? AND language = ?", userID, language).
+			Order("created_at desc").
+			Find(&rows).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			entries = append(entries, VocabEntry{Lemma: row.Lemma, GradeLevel: row.GradeLevel})
+		}
+	}
+
+	return entries, nil
+}
+
+func (r *Repository) BulkAddKnownWordsByJLPT(ctx context.Context, userID uint, language string, jlptLevel int) (int64, error) {
+	fmt.Print("Analysis Repository BulkAddKnownWordsByJLPT Function Reached\n")
+
+	// Insert JLPT words for the user, avoiding duplicates.
+	// Uses PostgreSQL INSERT ... SELECT ... ON CONFLICT DO NOTHING.
+	res := r.db.WithContext(ctx).Exec(
+		`INSERT INTO known_words (user_id, language, lemma, grade_level, status, created_at)
+		 SELECT ?, ?, japanese_dictionary.kanji, ?, 'known', CURRENT_TIMESTAMP
+		 FROM japanese_dictionary
+		 WHERE jlpt_level = ?
+		 ON CONFLICT (user_id, language, lemma) DO NOTHING`,
+		userID, language, jlptLevel, jlptLevel,
+	)
+	if res.Error != nil {
+		return 0, res.Error
+	}
+
+	return res.RowsAffected, nil
+}
+
 func (r *Repository) GetDictionaryGradeLevels(ctx context.Context, language string, lemmas []string) (map[string]int, error) {
 	fmt.Print("Analysis Repository GetDictionaryGradeLevels Function Reached\n")
 	levels := make(map[string]int)

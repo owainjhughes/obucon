@@ -2,6 +2,7 @@ package ja
 
 import (
 	"fmt"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -60,8 +61,12 @@ func (tok *Tokenizer) Tokenize(text string) ([]Token, error) {
 			lemma = t.POS()[6]
 		}
 
-		// skip punctuation and special BOS/EOS markers
+		// skip punctuation, whitespace, and special BOS/EOS markers
 		if t.Surface == "BOS" || t.Surface == "EOS" {
+			continue
+		}
+
+		if strings.TrimSpace(t.Surface) == "" {
 			continue
 		}
 

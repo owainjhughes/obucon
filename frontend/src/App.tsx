@@ -7,6 +7,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import Vocab from "./pages/Vocab";
+import Analysis from "./pages/Analysis";
 
 function App() {
   return (
@@ -23,10 +25,27 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/vocab"
+              element={
+                <ProtectedRoute>
+                  <Vocab />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vocabulary"
+              element={
+                <ProtectedRoute>
+                  <Vocab />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />}/>
+            <Route path="/analysis" element={<Analysis />}/>
           </Routes>
         </div>
       </Router>
