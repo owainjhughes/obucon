@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { apiClient } from '../../api/client'
+import { getApiErrorMessage } from '../../api/errors'
 import AnalysisOutput from './AnalysisOutput'
 
 type AnalysisMode = 'text' | 'file' | 'link'
@@ -37,9 +38,8 @@ export default function AnalysisInput() {
         language,
       })
       setResult(response.data)
-    } catch (err: any) {
-      const message = err?.response?.data?.error || 'Analysis failed'
-      setError(message)
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Analysis failed'))
     } finally {
       setIsLoading(false)
     }
@@ -117,24 +117,15 @@ export default function AnalysisInput() {
           )}
 
           {mode === 'file' && (
-            <label className="block">
-              <span className="text-sm font-medium text-gray-700">Upload a file</span>
-              <input
-                type="file"
-                className="mt-2 block w-full text-sm text-gray-700 file:mr-4 file:rounded-md file:border-0 file:bg-[#55F] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#44E]"
-              />
-            </label>
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-500 text-center">
+              File upload is not yet available.
+            </div>
           )}
 
           {mode === 'link' && (
-            <label className="block">
-              <span className="text-sm font-medium text-gray-700">Paste a link</span>
-              <input
-                type="url"
-                className="mt-2 w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-900 focus:border-[#55F] focus:outline-none"
-                placeholder="https://example.com"
-              />
-            </label>
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-500 text-center">
+              Link analysis is not yet available.
+            </div>
           )}
           <div className="mt-4 flex justify-end">
             <button

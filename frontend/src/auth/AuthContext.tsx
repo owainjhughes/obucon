@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { apiClient } from "../api/client";
 
 export interface AuthUser {
   id: number;
-  email?: string;
-  username?: string;
+  email: string;
+  username: string;
 }
 
 interface AuthContextValue {
@@ -16,16 +16,28 @@ interface AuthContextValue {
   refresh: () => Promise<void>;
 }
 
+interface MeResponse {
+  id: number;
+  email: string;
+  username: string;
+}
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const mapUser = (data: MeResponse): AuthUser => ({
+    id: data.id,
+    email: data.email,
+    username: data.username,
+  });
+
   const refresh = async () => {
     try {
       const response = await apiClient.get("/auth/me");
-      setUser({ id: response.data.id });
+      setUser(mapUser(response.data));
     } catch (error) {
       setUser(null);
     } finally {
@@ -38,8 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await apiClient.post("/auth/login", { email, password });
-    setUser({ id: response.data.id, email: response.data.email });
+    await apiClient.post("/auth/login", { email, password });
+    await refresh();
   };
 
   const register = async (email: string, username: string, password: string) => {
@@ -55,12 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const value = useMemo(
-    () => ({ user, isLoading, login, register, logout, refresh }),
-    [user, isLoading]
+  return (
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refresh }}>
+      {children}
+    </AuthContext.Provider>
   );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

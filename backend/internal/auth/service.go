@@ -17,7 +17,6 @@ type Service struct {
 }
 
 func NewService(userRepo *Repository, jwtSecret string) *Service {
-	fmt.Print("Auth NewService Function Reached\n")
 	return &Service{
 		userRepo:  userRepo,
 		jwtSecret: jwtSecret,
@@ -25,8 +24,6 @@ func NewService(userRepo *Repository, jwtSecret string) *Service {
 }
 
 func (s *Service) generateToken(userID uint, email string) (string, error) {
-	fmt.Print("Auth generateToken Function Reached\n")
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
 		"email":   email,
@@ -36,21 +33,11 @@ func (s *Service) generateToken(userID uint, email string) (string, error) {
 	return token.SignedString([]byte(s.jwtSecret))
 }
 
+func (s *Service) GetUserByID(ctx context.Context, id uint) (*models.User, error) {
+	return s.userRepo.GetByID(ctx, id)
+}
+
 func (s *Service) Register(ctx context.Context, email, username, password string) (*models.User, error) {
-	fmt.Print("Auth Register Function Reached\n")
-
-	if email == "" {
-		return nil, errors.New("email is required")
-	}
-
-	if len(username) < 3 || len(username) > 50 {
-		return nil, errors.New("username must be between 3 and 50 characters")
-	}
-
-	if len(password) < 4 {
-		return nil, errors.New("password must be at least 4 characters")
-	}
-
 	existingUser, err := s.userRepo.GetByEmail(ctx, email)
 	if err == nil && existingUser != nil {
 		return nil, errors.New("email already registered")
@@ -80,8 +67,6 @@ func (s *Service) Register(ctx context.Context, email, username, password string
 }
 
 func (s *Service) LoginWithUserID(ctx context.Context, email, password string) (string, uint, error) {
-	fmt.Print("Auth LoginWithUserID Function Reached\n")
-
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil || user == nil {
 		return "", 0, errors.New("invalid email or password")
@@ -100,8 +85,6 @@ func (s *Service) LoginWithUserID(ctx context.Context, email, password string) (
 }
 
 func (s *Service) ValidateToken(tokenString string) (uint, error) {
-	fmt.Print("Auth ValidateToken Function Reached\n")
-
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.jwtSecret), nil
 	})
@@ -115,11 +98,6 @@ func (s *Service) ValidateToken(tokenString string) (uint, error) {
 		return 0, errors.New("invalid token claims")
 	}
 
-	if exp, ok := (*claims)["exp"].(float64); ok {
-		if time.Now().Unix() > int64(exp) {
-			return 0, errors.New("token expired")
-		}
-	}
 
 	userID, ok := (*claims)["user_id"].(float64)
 	if !ok {

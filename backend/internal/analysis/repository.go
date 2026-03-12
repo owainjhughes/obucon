@@ -3,7 +3,6 @@ package analysis
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"obucon/internal/models"
 
 	"gorm.io/gorm"
@@ -15,50 +14,17 @@ type Repository struct {
 }
 
 func NewRepository(db *gorm.DB) *Repository {
-	fmt.Print("Analysis NewRepository Function Reached\n")
 	return &Repository{db: db}
 }
 
-func (r *Repository) Create(ctx context.Context, analysis *models.Analysis) error {
-	fmt.Print("Analysis Repository Create Function Reached\n")
-	return r.db.WithContext(ctx).Create(analysis).Error
-}
-
-func (r *Repository) GetByID(ctx context.Context, id uint) (*models.Analysis, error) {
-	fmt.Print("Analysis Repository GetByID Function Reached\n")
-	var analysis models.Analysis
-	err := r.db.WithContext(ctx).First(&analysis, id).Error
-	return &analysis, err
-}
-
-func (r *Repository) GetByUserID(ctx context.Context, userID uint) ([]models.Analysis, error) {
-	fmt.Print("Analysis Repository GetByUserID Function Reached\n")
-	var analyses []models.Analysis
-	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Order("created_at DESC").Find(&analyses).Error
-	return analyses, err
-}
-
-func (r *Repository) GetByTextHash(ctx context.Context, userID uint, textHash string) (*models.Analysis, error) {
-	fmt.Print("Analysis Repository GetByTextHash Function Reached\n")
-	var analysis models.Analysis
-	err := r.db.WithContext(ctx).Where("user_id = ? AND text_hash = ?", userID, textHash).First(&analysis).Error
-	return &analysis, err
-}
-
-func (r *Repository) Delete(ctx context.Context, id uint) error {
-	fmt.Print("Analysis Repository Delete Function Reached\n")
-	return r.db.WithContext(ctx).Delete(&models.Analysis{}, id).Error
-}
-
 func (r *Repository) UpsertKnownWord(ctx context.Context, knownWord *models.KnownWord) error {
-	fmt.Print("Analysis Repository UpsertKnownWord Function Reached\n")
 	if err := r.populateKnownWordGradeLevel(ctx, knownWord); err != nil {
 		return err
 	}
 	return r.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_id"}, {Name: "language"}, {Name: "lemma"}},
-			DoUpdates: clause.AssignmentColumns([]string{"grade_level", "status", "metadata"}),
+			DoUpdates: clause.AssignmentColumns([]string{"grade_level", "status"}),
 		}).
 		Create(knownWord).Error
 }
@@ -75,7 +41,7 @@ func (r *Repository) populateKnownWordGradeLevel(ctx context.Context, knownWord 
 			Model(&models.JapaneseDictionary{}).
 			Select("jlpt_level").
 			Where("kanji = ? OR hiragana = ?", knownWord.Lemma, knownWord.Lemma).
-			Order("jlpt_level ASC").
+			Order("jlpt_level DESC").
 			Limit(1).
 			Scan(&jlptLevel).Error
 		if err != nil {
@@ -91,37 +57,7 @@ func (r *Repository) populateKnownWordGradeLevel(ctx context.Context, knownWord 
 	return nil
 }
 
-func (r *Repository) ListKnownWordsByUser(ctx context.Context, userID uint, language string) ([]models.KnownWord, error) {
-	fmt.Print("Analysis Repository ListKnownWordsByUser Function Reached\n")
-	var knownWords []models.KnownWord
-	query := r.db.WithContext(ctx).Where("user_id = ?", userID)
-	if language != "" {
-		query = query.Where("language = ?", language)
-	}
-	err := query.Order("created_at DESC").Find(&knownWords).Error
-	return knownWords, err
-}
-
-func (r *Repository) DeleteKnownWordByID(ctx context.Context, userID, knownWordID uint) error {
-	fmt.Print("Analysis Repository DeleteKnownWordByID Function Reached\n")
-	return r.db.WithContext(ctx).Where("user_id = ?", userID).Delete(&models.KnownWord{}, knownWordID).Error
-}
-
-func (r *Repository) IsKnownLemma(ctx context.Context, userID uint, language, lemma string) (bool, error) {
-	fmt.Print("Analysis Repository IsKnownLemma Function Reached\n")
-	var count int64
-	err := r.db.WithContext(ctx).
-		Model(&models.KnownWord{}).
-		Where("user_id = ? AND language = ? AND lemma = ?", userID, language, lemma).
-		Count(&count).Error
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
 func (r *Repository) GetKnownLemmas(ctx context.Context, userID uint, language string, lemmas []string) (map[string]bool, error) {
-	fmt.Print("Analysis Repository GetKnownLemmas Function Reached\n")
 	known := make(map[string]bool)
 	if len(lemmas) == 0 {
 		return known, nil
@@ -234,7 +170,6 @@ type VocabEntry struct {
 }
 
 func (r *Repository) ListKnownWordsWithMeaning(ctx context.Context, userID uint, language string) ([]VocabEntry, error) {
-	fmt.Print("Analysis Repository ListKnownWordsWithMeaning Function Reached\n")
 	var entries []VocabEntry
 
 	switch language {
@@ -268,41 +203,18 @@ func (r *Repository) ListKnownWordsWithMeaning(ctx context.Context, userID uint,
 }
 
 func (r *Repository) BulkAddKnownWordsByJLPT(ctx context.Context, userID uint, language string, jlptLevel int) (int64, error) {
-	fmt.Print("Analysis Repository BulkAddKnownWordsByJLPT Function Reached\n")
-
-	var totalRows int64
-
 	res := r.db.WithContext(ctx).Exec(
 		`INSERT INTO known_words (user_id, language, lemma, grade_level, status, created_at)
-		 SELECT ?, ?, japanese_dictionary.kanji, ?, 'known', CURRENT_TIMESTAMP
+		 SELECT ?, ?, CASE WHEN kanji <> '' THEN kanji ELSE hiragana END, ?, 'known', CURRENT_TIMESTAMP
 		 FROM japanese_dictionary
-		 WHERE jlpt_level = ? AND japanese_dictionary.kanji <> ''
+		 WHERE jlpt_level = ?
 		 ON CONFLICT (user_id, language, lemma) DO NOTHING`,
 		userID, language, jlptLevel, jlptLevel,
 	)
-	if res.Error != nil {
-		return 0, res.Error
-	}
-	totalRows += res.RowsAffected
-
-	res = r.db.WithContext(ctx).Exec(
-		`INSERT INTO known_words (user_id, language, lemma, grade_level, status, created_at)
-		 SELECT ?, ?, japanese_dictionary.hiragana, ?, 'known', CURRENT_TIMESTAMP
-		 FROM japanese_dictionary
-		 WHERE jlpt_level = ? AND japanese_dictionary.hiragana <> ''
-		 ON CONFLICT (user_id, language, lemma) DO NOTHING`,
-		userID, language, jlptLevel, jlptLevel,
-	)
-	if res.Error != nil {
-		return totalRows, res.Error
-	}
-	totalRows += res.RowsAffected
-
-	return totalRows, nil
+	return res.RowsAffected, res.Error
 }
 
 func (r *Repository) GetDictionaryGradeLevels(ctx context.Context, language string, lemmas []string) (map[string]int, error) {
-	fmt.Print("Analysis Repository GetDictionaryGradeLevels Function Reached\n")
 	levels := make(map[string]int)
 	if len(lemmas) == 0 {
 		return levels, nil
@@ -334,17 +246,18 @@ func (r *Repository) GetDictionaryGradeLevels(ctx context.Context, language stri
 			level := *row.JLPTLevel
 
 			if row.Kanji != "" {
-				if existing, ok := levels[row.Kanji]; !ok || level < existing {
+				if existing, ok := levels[row.Kanji]; !ok || level > existing {
 					levels[row.Kanji] = level
 				}
 			}
 
 			if row.Hiragana != "" {
-				if existing, ok := levels[row.Hiragana]; !ok || level < existing {
+				if existing, ok := levels[row.Hiragana]; !ok || level > existing {
 					levels[row.Hiragana] = level
 				}
 			}
 		}
+
 	}
 
 	return levels, nil

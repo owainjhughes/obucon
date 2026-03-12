@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
+	"obucon/internal/helpers"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +13,6 @@ type AuthHandler struct {
 }
 
 func NewAuthHandler(authService *Service) *AuthHandler {
-	fmt.Print("Auth NewAuthHandler Function Reached\n")
 	return &AuthHandler{authService: authService}
 }
 
@@ -40,20 +39,16 @@ const (
 )
 
 func setAuthCookie(c *gin.Context, token string) {
-	fmt.Print("Auth setAuthCookie Function Reached\n")
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(authCookieName, token, authCookieMaxAgeSeconds, "/", "", false, true)
 }
 
 func clearAuthCookie(c *gin.Context) {
-	fmt.Print("Auth clearAuthCookie Function Reached\n")
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(authCookieName, "", -1, "/", "", false, true)
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
-	fmt.Print("Auth Register Handler Function Reached\n")
-
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -74,8 +69,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
-	fmt.Print("Auth Login Handler Function Reached\n")
-
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -98,29 +91,31 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	fmt.Print("Auth Logout Handler Function Reached\n")
-
 	clearAuthCookie(c)
 	c.JSON(http.StatusOK, gin.H{"status": "logged out"})
 }
 
 func (h *AuthHandler) GetMe(c *gin.Context) {
-	fmt.Print("Auth GetMe Handler Function Reached\n")
-
-	userID, exists := c.Get("userID")
-	if !exists {
+	userID, ok := helpers.UserIDFromContext(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
+	user, err := h.authService.GetUserByID(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch user"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"id": userID,
+		"id":       user.ID,
+		"email":    user.Email,
+		"username": user.Username,
 	})
 }
 
 func AuthMiddleware(authService *Service) gin.HandlerFunc {
-	fmt.Print("Auth Middleware Function Reached\n")
-
 	return func(c *gin.Context) {
 		tokenString := ""
 		authHeader := c.GetHeader("Authorization")

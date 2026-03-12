@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react"
 import Layout from "../components/Layout"
 import { apiClient } from "../api/client"
+import { getApiErrorMessage } from "../api/errors"
 
 interface VocabEntry {
   lemma: string
@@ -23,8 +24,8 @@ export default function Vocab() {
     try {
       const response = await apiClient.get("/vocab")
       setVocab(response.data.vocab || [])
-    } catch (err: any) {
-      setError(err?.response?.data?.error || "Failed to load vocabulary")
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Failed to load vocabulary"))
     } finally {
       setIsLoading(false)
     }
@@ -48,8 +49,8 @@ export default function Vocab() {
         language: "ja",
       })
       await loadVocab()
-    } catch (err: any) {
-      setError(err?.response?.data?.error || "Failed to import vocabulary")
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Failed to import vocabulary"))
     } finally {
       setImporting(false)
     }

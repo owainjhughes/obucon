@@ -10,6 +10,10 @@ import Settings from "./pages/Settings";
 import Vocab from "./pages/Vocab";
 import Analysis from "./pages/Analysis";
 
+function protectedElement(element: React.ReactElement) {
+  return <ProtectedRoute>{element}</ProtectedRoute>;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -17,35 +21,13 @@ function App() {
         <div className="App">
           <header className="App-header"></header>
           <Routes>
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vocab"
-              element={
-                <ProtectedRoute>
-                  <Vocab />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vocabulary"
-              element={
-                <ProtectedRoute>
-                  <Vocab />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/" element={protectedElement(<Home />)} />
+            <Route path="/vocabulary" element={protectedElement(<Vocab />)} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />}/>
-            <Route path="/analysis" element={<Analysis />}/>
+            <Route path="/analysis" element={protectedElement(<Analysis />)} />
           </Routes>
         </div>
       </Router>

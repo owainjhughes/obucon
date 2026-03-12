@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { useAuth } from "../auth/AuthContext";
+import { getApiErrorMessage } from "../api/errors";
 
 export default function Login() {
   const { login } = useAuth();
@@ -19,9 +20,8 @@ export default function Login() {
     try {
       await login(email, password);
       navigate("/");
-    } catch (err: any) {
-      const message = err?.response?.data?.error || "Login failed";
-      setError(message);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Login failed"));
     } finally {
       setIsSubmitting(false);
     }

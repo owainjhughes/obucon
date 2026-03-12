@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"gorm.io/datatypes"
 )
 
 // Reference: https://gorm.io/docs/models.html
@@ -22,53 +20,18 @@ func (User) TableName() string {
 }
 
 // KnownWord represents a user-scoped known word entry.
-// Reference:
-//   - GORM JSONB: https://gorm.io/docs/data_types.html
-//   - PostgreSQL JSONB queries: https://www.postgresql.org/docs/current/datatype-json.html
 type KnownWord struct {
-	ID         uint              `gorm:"primaryKey" json:"id"`
-	UserID     uint              `gorm:"not null;index" json:"user_id"`
-	Language   string            `gorm:"size:10;not null" json:"language"` // 'ja', 'de', 'ko', etc.
-	Lemma      string            `gorm:"not null;index" json:"lemma"`
-	GradeLevel *int              `gorm:"index" json:"grade_level"` // Nullable
-	Status     string            `gorm:"default:known" json:"status"`
-	Metadata   datatypes.JSONMap `gorm:"type:jsonb" json:"metadata"` // Language-specific data (for quirks such as Furigana for Kanji etc)
-	CreatedAt  time.Time         `json:"created_at"`
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	UserID     uint      `gorm:"not null;index" json:"user_id"`
+	Language   string    `gorm:"size:10;not null" json:"language"`
+	Lemma      string    `gorm:"not null;index" json:"lemma"`
+	GradeLevel *int      `gorm:"index" json:"grade_level"`
+	Status     string    `gorm:"default:known" json:"status"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 func (KnownWord) TableName() string {
 	return "known_words"
-}
-
-// Analysis represents a single text analysis session
-type Analysis struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	UserID      uint      `gorm:"not null;index" json:"user_id"`
-	Language    string    `gorm:"size:10;not null" json:"language"`
-	TextHash    string    `gorm:"size:64;index" json:"text_hash"` // SHA-256 hash of input text
-	CoveragePct *float32  `json:"coverage_pct"`                   // Nullable (0.00 to 100.00)
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-// TableName specifies the table name for GORM
-func (Analysis) TableName() string {
-	return "analyses"
-}
-
-// AnalysisToken represents a single word found in an analysis
-type AnalysisToken struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	AnalysisID uint      `gorm:"not null;index" json:"analysis_id"`
-	Surface    string    `gorm:"not null" json:"surface"` // Word as it appears in text
-	Lemma      string    `gorm:"not null;index" json:"lemma"`
-	GradeLevel *int      `json:"grade_level"`
-	IsKnown    *bool     `gorm:"index" json:"is_known"` // Nullable (may not be determined)
-	CreatedAt  time.Time `json:"created_at"`
-}
-
-// TableName specifies the table name for GORM
-func (AnalysisToken) TableName() string {
-	return "analysis_tokens"
 }
 
 // JapaneseDictionary represents an entry in the Japanese word dictionary

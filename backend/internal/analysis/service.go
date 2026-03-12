@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"obucon/internal/lang/ja"
+	"obucon/internal/models"
 	"strings"
 )
 
@@ -19,6 +20,8 @@ type EnrichedToken struct {
 	POS        string `json:"pos"`
 	IsKnown    bool   `json:"is_known"`
 	GradeLevel *int   `json:"grade_level"`
+	IsKatakana bool   `json:"is_katakana"`
+	IsRoman    bool   `json:"is_roman"`
 }
 
 type Service struct {
@@ -27,12 +30,16 @@ type Service struct {
 }
 
 func NewService(tokenizer *ja.Tokenizer, repo *Repository) *Service {
-	fmt.Print("Analysis Service NewService Function Reached\n")
 	return &Service{tokenizer: tokenizer, repo: repo}
 }
 
+type AddKnownWordResult struct {
+	Lemma      string `json:"lemma"`
+	GradeLevel *int   `json:"grade_level"`
+	Status     string `json:"status"`
+}
+
 func (s *Service) AnalyzeText(ctx context.Context, userID uint, language, text string) (*AnalysisResult, error) {
-	fmt.Print("Analysis Service AnalyzeText Function Reached\n")
 	if text == "" {
 		return nil, fmt.Errorf("text cannot be empty")
 	}
@@ -71,7 +78,11 @@ func (s *Service) AnalyzeText(ctx context.Context, userID uint, language, text s
 			}
 		}
 
-		isGrammarToken := strings.Contains(token.PartOfSpeech, "助詞") || strings.Contains(token.PartOfSpeech, "助動詞") || strings.Contains(token.PartOfSpeech, "記号") || strings.Contains(token.PartOfSpeech, "動詞 接尾") || strings.Contains(token.PartOfSpeech, "動詞 非自立")
+		isGrammarToken := strings.Contains(token.PartOfSpeech, "助詞") ||
+			strings.Contains(token.PartOfSpeech, "助動詞") ||
+			strings.Contains(token.PartOfSpeech, "記号") ||
+			strings.Contains(token.PartOfSpeech, "動詞 接尾") ||
+			strings.Contains(token.PartOfSpeech, "動詞 非自立")
 
 		baseLemma := token.Lemma
 		if strings.HasSuffix(baseLemma, "さ") {
@@ -103,6 +114,8 @@ func (s *Service) AnalyzeText(ctx context.Context, userID uint, language, text s
 			POS:        token.PartOfSpeech,
 			IsKnown:    isKnown,
 			GradeLevel: gradeLevel,
+			IsKatakana: token.IsKatakana,
+			IsRoman:    token.IsRoman,
 		})
 	}
 
@@ -119,13 +132,35 @@ func (s *Service) AnalyzeText(ctx context.Context, userID uint, language, text s
 }
 
 func (s *Service) ListKnownVocabulary(ctx context.Context, userID uint, language string) ([]VocabEntry, error) {
-	fmt.Print("Analysis Service ListKnownVocabulary Function Reached\n")
 	return s.repo.ListKnownWordsWithMeaning(ctx, userID, language)
 }
 
 func (s *Service) AddBulkKnownVocabulary(ctx context.Context, userID uint, language string, jlptLevel int) (int64, error) {
-	fmt.Print("Analysis Service AddBulkKnownVocabulary Function Reached\n")
 	return s.repo.BulkAddKnownWordsByJLPT(ctx, userID, language, jlptLevel)
+}
+
+func (s *Service) AddKnownWord(ctx context.Context, userID uint, language, lemma string) (*AddKnownWordResult, error) {
+	cleanLemma := strings.TrimSpace(lemma)
+	if cleanLemma == "" {
+		return nil, fmt.Errorf("lemma cannot be empty")
+	}
+
+	word := &models.KnownWord{
+		UserID:   userID,
+		Language: language,
+		Lemma:    cleanLemma,
+		Status:   "known",
+	}
+
+	if err := s.repo.UpsertKnownWord(ctx, word); err != nil {
+		return nil, fmt.Errorf("failed to store known word: %w", err)
+	}
+
+	return &AddKnownWordResult{
+		Lemma:      word.Lemma,
+		GradeLevel: word.GradeLevel,
+		Status:     "known",
+	}, nil
 }
 
 func uniqueLemmas(tokens []ja.Token) []string {

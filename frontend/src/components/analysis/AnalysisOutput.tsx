@@ -1,10 +1,14 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { apiClient } from '../../api/client'
 
 interface Token {
   surface: string
+  lemma: string
   pos: string
   is_known: boolean
   grade_level?: number | null
+  is_katakana?: boolean
+  is_roman?: boolean
 }
 
 interface AnalysisOutputProps {
@@ -31,7 +35,8 @@ function createPieSegments(counts: Record<string, number>) {
     'JLPT N3': '#9333EA',
     'JLPT N4': '#EA580C',
     'JLPT N5': '#16A34A',
-    Unknown: '#6B7280',
+    'Unknown (Native)': '#9CA3AF',
+    'Katakana': '#D1D5DB',
   }
 
   const segments: Array<{ label: string; percent: number; color: string }> = []
@@ -49,7 +54,7 @@ function isAuxiliary(token: Token) {
 }
 
 function combineTokensForDisplay(tokens: Token[]) {
-  const combined: Array<{ surface: string; is_known: boolean; grade_level?: number | null }> = []
+  const combined: Array<{ surface: string; is_known: boolean; grade_level?: number | null; is_katakana?: boolean; is_roman?: boolean }> = []
 
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i]
@@ -58,74 +63,127 @@ function combineTokensForDisplay(tokens: Token[]) {
       const combinedSurface = token.surface + tokens[i + 1].surface
       const combinedKnown = token.is_known || tokens[i + 1].is_known
       const gradeLevel = token.grade_level ?? tokens[i + 1].grade_level
-      combined.push({ surface: combinedSurface, is_known: combinedKnown, grade_level: gradeLevel })
+      const isKatakana = token.is_katakana || tokens[i + 1].is_katakana
+      const isRoman = token.is_roman || tokens[i + 1].is_roman
+      combined.push({ surface: combinedSurface, is_known: combinedKnown, grade_level: gradeLevel, is_katakana: isKatakana, is_roman: isRoman })
       i += 1
       continue
     }
 
-    combined.push({ surface: token.surface, is_known: token.is_known, grade_level: token.grade_level })
+    combined.push({ surface: token.surface, is_known: token.is_known, grade_level: token.grade_level, is_katakana: token.is_katakana, is_roman: token.is_roman })
   }
 
   return combined
 }
 
 export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOutputProps) {
-  const displayTokens = combineTokensForDisplay(tokens)
-  const total = tokens.length
-  const knownCount = tokens.filter((t) => t.is_known).length
-  const missingCount = missing.length
+  const [localTokens, setLocalTokens] = useState<Token[]>(tokens)
+  const [localMissing, setLocalMissing] = useState<string[]>(missing)
+  const [addingByLemma, setAddingByLemma] = useState<Record<string, boolean>>({})
+  const [addError, setAddError] = useState('')
+  const [addingAll, setAddingAll] = useState(false)
+
+  useEffect(() => {
+    setLocalTokens(tokens)
+    setLocalMissing(missing)
+    setAddingByLemma({})
+    setAddError('')
+  }, [tokens, missing])
+
+  const handleAddKnown = async (lemma: string) => {
+    if (addingByLemma[lemma]) return
+    setAddingByLemma((prev) => ({ ...prev, [lemma]: true }))
+    try {
+      const response = await apiClient.post('/vocab/known', { lemma, language: 'ja' })
+      const resolvedGrade = response?.data?.grade_level ?? null
+      setLocalTokens((prev) =>
+        prev.map((token) =>
+          token.lemma === lemma || token.surface === lemma
+            ? { ...token, is_known: true, grade_level: resolvedGrade ?? token.grade_level ?? null }
+            : token
+        )
+      )
+      setLocalMissing((prev) => prev.filter((w) => w !== lemma))
+    } catch (err: any) {
+      setAddError(err?.response?.data?.error || 'Failed to add word to known list')
+    } finally {
+      setAddingByLemma((prev) => ({ ...prev, [lemma]: false }))
+    }
+  }
+
+  const handleAddAll = async () => {
+    if (addingAll || localMissing.length === 0) return
+    setAddError('')
+    setAddingAll(true)
+    try {
+      await Promise.all(localMissing.map((lemma) => handleAddKnown(lemma)))
+    } finally {
+      setAddingAll(false)
+    }
+  }
+
+  const displayTokens = combineTokensForDisplay(localTokens)
+  
+  // Filter out roman tokens for statistics
+  const scorableTokens = localTokens.filter((t) => !t.is_roman)
+  // For pie chart, include all non-roman tokens (both native and katakana)
+  const pieTokens = localTokens.filter((t) => !t.is_roman)
+  
+  const total = scorableTokens.length
+  const knownCount = scorableTokens.filter((t) => t.is_known).length
+  const missingCount = localMissing.length
   const knownPct = total === 0 ? 0 : (knownCount / total) * 100
   const rating = getRating(knownPct)
 
-  const jlptCounts = tokens.reduce<Record<string, number>>((acc, token) => {
-    const level = token.grade_level != null ? `JLPT N${token.grade_level}` : 'Unknown'
-    acc[level] = (acc[level] ?? 0) + 1
+  const jlptCounts = pieTokens.reduce<Record<string, number>>((acc, token) => {
+    let category: string
+    if (token.grade_level != null) {
+      category = `JLPT N${token.grade_level}`
+    } else if (token.is_katakana) {
+      category = 'Katakana'
+    } else {
+      category = 'Unknown (Native)'
+    }
+    acc[category] = (acc[category] ?? 0) + 1
     return acc
   }, {})
 
   const pieSegments = createPieSegments(jlptCounts)
 
   return (
-    <section className="px-4 py-10">
-      <div className="mx-auto flex max-w-4xl flex-col gap-6 lg:flex-row">
-        <div className="flex-1 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Analysis Output</h2>
-              <p className="mt-1 text-sm text-gray-600">
-                Highlighted words are based on your known vocabulary.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onReset}
-              className="rounded-full border border-[#55F] bg-white px-4 py-1.5 text-sm font-semibold text-[#55F] hover:bg-[#55F] hover:text-white"
-            >
-              New analysis
-            </button>
-          </div>
+    <section className="px-4 py-6">
+      <div className="w-full">
+        <button
+          type="button"
+          onClick={onReset}
+          className="mb-3 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800"
+        >
+          <span aria-hidden="true">&larr;</span>
+          New analysis
+        </button>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900">Text</h3>
+          <div className="text-base leading-loose">
+            {displayTokens.map((token, idx) => {
+              let className = `inline font-medium `
+              
+              if (token.is_roman) {
+                className += 'text-gray-700'
+              } else if (token.is_katakana) {
+                if (!token.is_known) className += 'bg-rose-50 text-rose-700 border-b border-rose-300'
+              } else {
+                if (!token.is_known) className += 'bg-rose-100 text-rose-800'
+              }
 
-          <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed">
-            {displayTokens.map((token, idx) => (
-              <React.Fragment key={idx}>
-                <span
-                  className={`inline text-xs font-medium ${
-                    token.is_known
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-rose-100 text-rose-800'
-                  }`}
-                >
-                  {token.surface}
-                </span>
-                {idx < displayTokens.length - 1 && (
-                  <span className="mx-1 inline text-xs font-medium text-gray-400">·</span>
-                )}
-              </React.Fragment>
-            ))}
+              return (
+                <span key={idx} className={className}>{token.surface}</span>
+              )
+            })}
           </div>
         </div>
 
-        <aside className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <aside className="lg:col-span-1 self-start rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900">Stats</h3>
 
           <div className="mt-6">
@@ -200,16 +258,23 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
 
           {missingCount > 0 && (
             <div className="mt-8">
-              <h4 className="text-sm font-semibold text-gray-700">Missing words</h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-gray-700">Missing words</h4>
+                <button
+                  type="button"
+                  onClick={handleAddAll}
+                  disabled={addingAll}
+                  className="rounded-full border border-[#55F] px-3 py-1 text-xs font-semibold text-[#55F] hover:bg-[#55F] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {addingAll ? 'Adding...' : 'Add all'}
+                </button>
+              </div>
               <p className="mt-1 text-xs text-gray-500">
                 These words were not found in your known vocabulary or the JLPT dictionary.
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {missing.slice(0, 30).map((word) => (
-                  <span
-                    key={word}
-                    className="rounded bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700"
-                  >
+                {localMissing.slice(0, 30).map((word) => (
+                  <span key={word} className="rounded bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700">
                     {word}
                   </span>
                 ))}
@@ -217,9 +282,15 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
                   <span className="text-xs text-gray-500">+{missingCount - 30} more</span>
                 )}
               </div>
+              {addError && (
+                <div className="mt-2 rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">
+                  {addError}
+                </div>
+              )}
             </div>
           )}
         </aside>
+        </div>
       </div>
     </section>
   )

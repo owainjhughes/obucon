@@ -13,9 +13,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
-	log.Print("Main Function Reached")
+func registerProtectedRoutes(group *gin.RouterGroup, authHandler *auth.AuthHandler, analysisHandler *analysis.AnalysisHandler) {
+	group.GET("/auth/me", authHandler.GetMe)
+	group.POST("/analyze", analysisHandler.AnalyzeText)
+	group.GET("/vocab", analysisHandler.ListVocabulary)
+	group.POST("/vocab/bulk", analysisHandler.BulkAddVocabulary)
+	group.POST("/vocab/known", analysisHandler.AddKnownWord)
+}
 
+func main() {
 	cfg := config.Load()
 
 	if err := database.RunMigrations(cfg); err != nil {
@@ -60,12 +66,7 @@ func main() {
 
 	protected := r.Group("/")
 	protected.Use(auth.AuthMiddleware(authService))
-	{
-		protected.GET("/auth/me", authHandler.GetMe)
-		protected.POST("/analyze", analysisHandler.AnalyzeText)
-		protected.GET("/vocab", analysisHandler.ListVocabulary)
-		protected.POST("/vocab/bulk", analysisHandler.BulkAddVocabulary)
-	}
+	registerProtectedRoutes(protected, authHandler, analysisHandler)
 
 	log.Printf("Server starting on port %s", cfg.Port)
 	r.Run(":" + cfg.Port)
