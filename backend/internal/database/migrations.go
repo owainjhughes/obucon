@@ -3,6 +3,8 @@ package database
 import (
 	"fmt"
 	"log"
+	"net"
+	"net/url"
 	"obucon/internal/config"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -15,10 +17,13 @@ import (
 //   - Examples: https://github.com/golang-migrate/migrate/tree/master/example
 
 func RunMigrations(cfg *config.Config) error {
-	databaseURL := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		cfg.DBUser, cfg.DBPass, cfg.DBHost, cfg.DBPort, cfg.DBName,
-	)
+	databaseURL := (&url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(cfg.DBUser, cfg.DBPass),
+		Host:     net.JoinHostPort(cfg.DBHost, cfg.DBPort),
+		Path:     cfg.DBName,
+		RawQuery: url.Values{"sslmode": []string{cfg.DBSSLMode}}.Encode(),
+	}).String()
 
 	// Use relative path for migrations
 	// golang-migrate on Windows has issues with absolute paths

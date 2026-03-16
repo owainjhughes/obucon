@@ -35,7 +35,7 @@ func main() {
 
 	userRepo := auth.NewRepository(db)
 	authService := auth.NewService(userRepo, cfg.JWTSecret)
-	authHandler := auth.NewAuthHandler(authService)
+	authHandler := auth.NewAuthHandler(authService, cfg.CookieSecure)
 
 	tokenizer, err := ja.NewTokenizer()
 	if err != nil {
@@ -46,10 +46,15 @@ func main() {
 	analysisService := analysis.NewService(tokenizer, analysisRepo)
 	analysisHandler := analysis.NewAnalysisHandler(analysisService)
 
-	r := gin.Default()
+	gin.SetMode(cfg.GinMode)
+	r := gin.New()
+	r.Use(gin.Logger(), gin.Recovery())
+	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		log.Fatalf("Failed to configure trusted proxies: %v", err)
+	}
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000"},
+		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		AllowCredentials: true,

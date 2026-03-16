@@ -85,8 +85,8 @@ func (s *Service) AnalyzeText(ctx context.Context, userID uint, language, text s
 			strings.Contains(token.PartOfSpeech, "動詞 非自立")
 
 		baseLemma := token.Lemma
-		if strings.HasSuffix(baseLemma, "さ") {
-			baseLemma = strings.TrimSuffix(baseLemma, "さ")
+		if before, ok := strings.CutSuffix(baseLemma, "さ"); ok {
+			baseLemma = before
 		}
 
 		// For conjugated verbs, also allow matching against the dictionary root (e.g. 知る)

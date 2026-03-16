@@ -1,0 +1,37 @@
+# Backend
+software/backend/bin/
+backend/.env
+
+# Frontend
+software/frontend/node_modules/
+software/frontend/build/
+software/frontend/.env
+
+# IDE
+.vscode/
+.idea/
+/.design/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uneeded data
+software/backend/data/original_data/
+software/backend/data/jlpt_vocabulary_seed.csv
+software/backend/migrations/002_seed_jlpt_vocabulary.up.sql
+software/backend/migrations/002_seed_jlpt_vocabulary.down.sql
+
+obuconkeys.pem
+
+# Terraform
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/crash.log
+infra/terraform/terraform.tfvars
+infra/terraform/*.tfplan
+
+# Local deployment env files
+.env.prod
+.deploy.env

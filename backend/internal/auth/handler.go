@@ -9,11 +9,12 @@ import (
 )
 
 type AuthHandler struct {
-	authService *Service
+	authService  *Service
+	cookieSecure bool
 }
 
-func NewAuthHandler(authService *Service) *AuthHandler {
-	return &AuthHandler{authService: authService}
+func NewAuthHandler(authService *Service, cookieSecure bool) *AuthHandler {
+	return &AuthHandler{authService: authService, cookieSecure: cookieSecure}
 }
 
 type RegisterRequest struct {
@@ -38,14 +39,14 @@ const (
 	authCookieMaxAgeSeconds = 24 * 60 * 60
 )
 
-func setAuthCookie(c *gin.Context, token string) {
+func (h *AuthHandler) setAuthCookie(c *gin.Context, token string) {
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(authCookieName, token, authCookieMaxAgeSeconds, "/", "", false, true)
+	c.SetCookie(authCookieName, token, authCookieMaxAgeSeconds, "/", "", h.cookieSecure, true)
 }
 
-func clearAuthCookie(c *gin.Context) {
+func (h *AuthHandler) clearAuthCookie(c *gin.Context) {
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(authCookieName, "", -1, "/", "", false, true)
+	c.SetCookie(authCookieName, "", -1, "/", "", h.cookieSecure, true)
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -81,7 +82,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	setAuthCookie(c, token)
+	h.setAuthCookie(c, token)
 
 	c.JSON(http.StatusOK, AuthResponse{
 		Token: token,
@@ -91,7 +92,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	clearAuthCookie(c)
+	h.clearAuthCookie(c)
 	c.JSON(http.StatusOK, gin.H{"status": "logged out"})
 }
 
