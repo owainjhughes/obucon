@@ -25,6 +25,18 @@ type addKnownWordRequest struct {
 	Language string `json:"language" binding:"required,len=2"`
 }
 
+type updateKnownWordRequest struct {
+	Lemma     string `json:"lemma" binding:"required"`
+	Language  string `json:"language" binding:"required,len=2"`
+	Meaning   string `json:"meaning" binding:"required"`
+	JLPTLevel int    `json:"jlpt_level" binding:"required,min=1,max=5"`
+}
+
+type removeKnownWordRequest struct {
+	Lemma    string `json:"lemma" binding:"required"`
+	Language string `json:"language" binding:"required,len=2"`
+}
+
 type bulkVocabRequest struct {
 	JLPTLevel string `json:"jlpt_level" binding:"required,oneof=N5 N4 N3 N2 N1"`
 	Language  string `json:"language" binding:"required,len=2"`
@@ -115,4 +127,48 @@ func (h *AnalysisHandler) AddKnownWord(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *AnalysisHandler) UpdateKnownWord(c *gin.Context) {
+	userID, ok := helpers.UserIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var req updateKnownWordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	result, err := h.analysisService.UpdateKnownWord(c.Request.Context(), userID, req.Language, req.Lemma, req.Meaning, req.JLPTLevel)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *AnalysisHandler) RemoveKnownWord(c *gin.Context) {
+	userID, ok := helpers.UserIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var req removeKnownWordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	err := h.analysisService.RemoveKnownWord(c.Request.Context(), userID, req.Language, req.Lemma)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

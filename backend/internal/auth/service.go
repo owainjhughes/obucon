@@ -98,7 +98,6 @@ func (s *Service) ValidateToken(tokenString string) (uint, error) {
 		return 0, errors.New("invalid token claims")
 	}
 
-
 	userID, ok := (*claims)["user_id"].(float64)
 	if !ok {
 		return 0, errors.New("invalid user_id in token")

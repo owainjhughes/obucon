@@ -176,7 +176,7 @@ func (r *Repository) ListKnownWordsWithMeaning(ctx context.Context, userID uint,
 	case "ja":
 		err := r.db.WithContext(ctx).
 			Table("known_words").
-			Select("known_words.lemma, known_words.grade_level, coalesce(japanese_dictionary.meaning, '') AS meaning").
+			Select("known_words.lemma, known_words.grade_level, coalesce(nullif(known_words.metadata->>'meaning', ''), japanese_dictionary.meaning, '') AS meaning").
 			Joins("LEFT JOIN japanese_dictionary ON known_words.lemma = japanese_dictionary.kanji OR known_words.lemma = japanese_dictionary.hiragana").
 			Where("known_words.user_id = ? AND known_words.language = ?", userID, language).
 			Order("known_words.created_at desc").
@@ -212,6 +212,42 @@ func (r *Repository) BulkAddKnownWordsByJLPT(ctx context.Context, userID uint, l
 		userID, language, jlptLevel, jlptLevel,
 	)
 	return res.RowsAffected, res.Error
+}
+
+func (r *Repository) UpdateKnownWord(ctx context.Context, userID uint, language, lemma, meaning string, jlptLevel int) error {
+	res := r.db.WithContext(ctx).Exec(
+		`UPDATE known_words
+		 SET grade_level = ?,
+		     metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{meaning}', to_jsonb(?::text), true)
+		 WHERE user_id = ? AND language = ? AND lemma = ?`,
+		jlptLevel, meaning, userID, language, lemma,
+	)
+
+	if res.Error != nil {
+		return res.Error
+	}
+
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) RemoveKnownWord(ctx context.Context, userID uint, language, lemma string) error {
+	res := r.db.WithContext(ctx).
+		Where("user_id = ? AND language = ? AND lemma = ?", userID, language, lemma).
+		Delete(&models.KnownWord{})
+
+	if res.Error != nil {
+		return res.Error
+	}
+
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
 }
 
 func (r *Repository) GetDictionaryGradeLevels(ctx context.Context, language string, lemmas []string) (map[string]int, error) {

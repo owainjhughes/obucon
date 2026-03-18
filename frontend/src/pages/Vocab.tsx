@@ -16,6 +16,11 @@ export default function Vocab() {
   const [search, setSearch] = useState("")
   const [jlptLevel, setJlptLevel] = useState("N5")
   const [importing, setImporting] = useState(false)
+  const [editingLemma, setEditingLemma] = useState<string | null>(null)
+  const [editMeaning, setEditMeaning] = useState("")
+  const [editGradeLevel, setEditGradeLevel] = useState("5")
+  const [savingLemma, setSavingLemma] = useState<string | null>(null)
+  const [deletingLemma, setDeletingLemma] = useState<string | null>(null)
 
   const loadVocab = async () => {
     setIsLoading(true)
@@ -36,7 +41,7 @@ export default function Vocab() {
   }, [])
 
   const filteredVocab = vocab.filter((entry) =>
-    entry.lemma.includes(search) || entry.meaning.toLowerCase().includes(search.toLowerCase())
+    entry.lemma.includes(search) || (entry.meaning || "").toLowerCase().includes(search.toLowerCase())
   )
 
   const handleImport = async () => {
@@ -53,6 +58,70 @@ export default function Vocab() {
       setError(getApiErrorMessage(err, "Failed to import vocabulary"))
     } finally {
       setImporting(false)
+    }
+  }
+
+  const startEditing = (entry: VocabEntry) => {
+    setEditingLemma(entry.lemma)
+    setEditMeaning(entry.meaning || "")
+    setEditGradeLevel(String(entry.grade_level ?? 5))
+    setError(null)
+  }
+
+  const cancelEditing = () => {
+    setEditingLemma(null)
+    setEditMeaning("")
+    setEditGradeLevel("5")
+  }
+
+  const saveEntry = async () => {
+    if (!editingLemma) {
+      return
+    }
+
+    setSavingLemma(editingLemma)
+    setError(null)
+
+    try {
+      await apiClient.put("/vocab/known", {
+        lemma: editingLemma,
+        language: "ja",
+        meaning: editMeaning,
+        jlpt_level: Number(editGradeLevel),
+      })
+      cancelEditing()
+      await loadVocab()
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Failed to update vocabulary entry"))
+    } finally {
+      setSavingLemma(null)
+    }
+  }
+
+  const removeEntry = async (entry: VocabEntry) => {
+    const confirmed = window.confirm(`Remove ${entry.lemma} from your vocabulary list?`)
+    if (!confirmed) {
+      return
+    }
+
+    setDeletingLemma(entry.lemma)
+    setError(null)
+
+    try {
+      await apiClient.delete("/vocab/known", {
+        data: {
+          lemma: entry.lemma,
+          language: "ja",
+        },
+      })
+      if (editingLemma === entry.lemma) {
+        cancelEditing()
+      }
+      await loadVocab()
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Failed to remove vocabulary entry"))
+    } finally {
+      setDeletingLemma(null)
     }
   }
 
@@ -111,14 +180,82 @@ export default function Vocab() {
                     <th className="px-4 py-3">Word</th>
                     <th className="px-4 py-3">Meaning</th>
                     <th className="px-4 py-3">Grade</th>
+                    <th className="px-4 py-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
                   {filteredVocab.map((entry) => (
                     <tr key={entry.lemma}>
                       <td className="px-4 py-3 font-semibold text-gray-900">{entry.lemma}</td>
-                      <td className="px-4 py-3">{entry.meaning || "—"}</td>
-                      <td className="px-4 py-3">{entry.grade_level ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        {editingLemma === entry.lemma ? (
+                          <input
+                            value={editMeaning}
+                            onChange={(e) => setEditMeaning(e.target.value)}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#55F] focus:outline-none"
+                          />
+                        ) : (
+                          entry.meaning || "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {editingLemma === entry.lemma ? (
+                          <select
+                            value={editGradeLevel}
+                            onChange={(e) => setEditGradeLevel(e.target.value)}
+                            className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 focus:border-[#55F] focus:outline-none"
+                          >
+                            <option value="5">N5</option>
+                            <option value="4">N4</option>
+                            <option value="3">N3</option>
+                            <option value="2">N2</option>
+                            <option value="1">N1</option>
+                          </select>
+                        ) : (
+                          entry.grade_level ?? "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {editingLemma === entry.lemma ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={saveEntry}
+                                disabled={savingLemma === entry.lemma}
+                                className="rounded-full border border-[#55F] bg-[#55F] px-3 py-1 text-xs font-semibold text-white hover:bg-[#44E] disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {savingLemma === entry.lemma ? "Saving..." : "Save"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditing}
+                                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => startEditing(entry)}
+                                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeEntry(entry)}
+                                disabled={deletingLemma === entry.lemma}
+                                className="rounded-full border border-red-300 bg-white px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {deletingLemma === entry.lemma ? "Removing..." : "Remove"}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

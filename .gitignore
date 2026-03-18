@@ -35,3 +35,6 @@ infra/terraform/*.tfplan
 # Local deployment env files
 .env.prod
 .deploy.env
+
+/software/DEPLOYMENT_WORKFLOW_DISSERTATION.md
+/DEPLOYMENT_WORKFLOW.md

@@ -39,6 +39,12 @@ type AddKnownWordResult struct {
 	Status     string `json:"status"`
 }
 
+type UpdateKnownWordResult struct {
+	Lemma      string `json:"lemma"`
+	Meaning    string `json:"meaning"`
+	GradeLevel int    `json:"grade_level"`
+}
+
 func (s *Service) AnalyzeText(ctx context.Context, userID uint, language, text string) (*AnalysisResult, error) {
 	if text == "" {
 		return nil, fmt.Errorf("text cannot be empty")
@@ -161,6 +167,47 @@ func (s *Service) AddKnownWord(ctx context.Context, userID uint, language, lemma
 		GradeLevel: word.GradeLevel,
 		Status:     "known",
 	}, nil
+}
+
+func (s *Service) UpdateKnownWord(ctx context.Context, userID uint, language, lemma, meaning string, jlptLevel int) (*UpdateKnownWordResult, error) {
+	cleanLemma := strings.TrimSpace(lemma)
+	if cleanLemma == "" {
+		return nil, fmt.Errorf("lemma cannot be empty")
+	}
+
+	cleanMeaning := strings.TrimSpace(meaning)
+	if cleanMeaning == "" {
+		return nil, fmt.Errorf("meaning cannot be empty")
+	}
+
+	if jlptLevel < 1 || jlptLevel > 5 {
+		return nil, fmt.Errorf("jlpt level must be between 1 and 5")
+	}
+
+	err := s.repo.UpdateKnownWord(ctx, userID, language, cleanLemma, cleanMeaning, jlptLevel)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update known word: %w", err)
+	}
+
+	return &UpdateKnownWordResult{
+		Lemma:      cleanLemma,
+		Meaning:    cleanMeaning,
+		GradeLevel: jlptLevel,
+	}, nil
+}
+
+func (s *Service) RemoveKnownWord(ctx context.Context, userID uint, language, lemma string) error {
+	cleanLemma := strings.TrimSpace(lemma)
+	if cleanLemma == "" {
+		return fmt.Errorf("lemma cannot be empty")
+	}
+
+	err := s.repo.RemoveKnownWord(ctx, userID, language, cleanLemma)
+	if err != nil {
+		return fmt.Errorf("failed to remove known word: %w", err)
+	}
+
+	return nil
 }
 
 func uniqueLemmas(tokens []ja.Token) []string {
