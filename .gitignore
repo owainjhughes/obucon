@@ -1,11 +1,11 @@
 # Backend
-software/backend/bin/
+backend/bin/
 backend/.env
 
 # Frontend
-software/frontend/node_modules/
-software/frontend/build/
-software/frontend/.env
+frontend/node_modules/
+frontend/build/
+frontend/.env
 
 # IDE
 .vscode/
@@ -17,24 +17,27 @@ software/frontend/.env
 Thumbs.db
 
 # Uneeded data
-software/backend/data/original_data/
-software/backend/data/jlpt_vocabulary_seed.csv
-software/backend/migrations/002_seed_jlpt_vocabulary.up.sql
-software/backend/migrations/002_seed_jlpt_vocabulary.down.sql
+backend/data/original_data/
+backend/data/jlpt_vocabulary_seed.csv
+backend/migrations/002_seed_jlpt_vocabulary.up.sql
+backend/migrations/002_seed_jlpt_vocabulary.down.sql
 
-obuconkeys.pem
+/DEPLOYMENT_WORKFLOW.md
+/backend/.env
+/backend/.env.docker
+/backend/go.mod
+/backend/go.sum
+/DEPLOYMENT_WORKFLOW_DISSERTATION.md
+/infra/terraform/environments/prod/terraform.tfvars.example
 
 # Terraform
-infra/terraform/.terraform/
-infra/terraform/*.tfstate
-infra/terraform/*.tfstate.*
-infra/terraform/crash.log
-infra/terraform/terraform.tfvars
-infra/terraform/*.tfplan
+/infra/terraform/**/.terraform/
+/infra/terraform/**/*.tfstate
+/infra/terraform/**/*.tfstate.*
+/infra/terraform/**/crash.log
+/infra/terraform/**/terraform.tfvars
+/infra/terraform/**/*.auto.tfvars
+/infra/terraform/**/*.tfplan
 
-# Local deployment env files
-.env.prod
-.deploy.env
-
-/software/DEPLOYMENT_WORKFLOW_DISSERTATION.md
-/DEPLOYMENT_WORKFLOW.md
+# Keys
+/obuconkeys.pem

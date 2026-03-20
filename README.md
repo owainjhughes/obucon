@@ -11,7 +11,7 @@ It is like a much more personalised and learning-focused version of [jreadabilit
 - Frontend: React
 - Backend: Go + Gin
 - Database: PostgreSQL
-- Deployment: Docker, Kubernetes, Terraform, AWS (EC2 + RDS)
+- Deployment: Docker, Terraform, AWS (EC2 + RDS)
 - CI/CD: GitHub Actions
 
 ### How to use

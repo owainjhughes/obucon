@@ -12,7 +12,6 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Include CA roots for outbound TLS connections (DBs/APIs over HTTPS).
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends ca-certificates \
 	&& rm -rf /var/lib/apt/lists/*
