@@ -6,15 +6,36 @@ aws_region = "eu-west-2"
 backend_repository_name  = "obucon"
 frontend_repository_name = "obucon-frontend"
 
-# Existing security groups
+#  App security group 
+# Set manage_app_sg = true after: terraform import 'module.app_sg.aws_security_group.app[0]' sg-xxxxxxxxxxxxxxxxx
+manage_app_sg         = false
+vpc_id                = "vpc-xxxxxxxxxxxxxxxxx"
+app_sg_name           = "launch-wizard-1"
+app_security_group_id = "sg-xxxxxxxxxxxxxxxxx"
+
+# ── RDS security group ingress rule 
+# Set manage_rds_ingress_rule = true after importing the ingress rule
 manage_rds_ingress_rule = false
-app_security_group_id   = "sg-xxxxxxxxxxxxxxxxx"
 rds_security_group_id   = "sg-xxxxxxxxxxxxxxxxx"
 
-# EC2 adoption (leave false until you import EC2)
+# ── RDS instance 
+# Set manage_rds_instance = true after: terraform import 'module.rds_instance.aws_db_instance.main[0]' obucon-db
+manage_rds_instance     = false
+db_identifier           = "obucon-db"
+db_instance_class       = "db.t3.micro"
+db_allocated_storage    = 20
+db_name                 = "obucon"
+db_username             = "postgres"
+db_password             = "change-me"   # gitignored — never commit real password
+db_subnet_group_name    = "default-vpc-xxxxxxxxxxxxxxxxx"
+db_parameter_group_name = "default.postgres16"
+
+# ── EC2 adoption 
+# Set manage_ec2_instance = true after: terraform import 'module.compute_host.aws_instance.app[0]' i-xxxxxxxxxxxxxxxxx
 manage_ec2_instance = false
 instance_name       = "obucon-server"
 ami_id              = "ami-xxxxxxxx"
 instance_type       = "t3.micro"
 key_name            = "obuconkeys"
 subnet_id           = "subnet-xxxxxxxxxxxxxxxxx"
+

@@ -12,3 +12,8 @@ output "managed_instance_id" {
   description = "EC2 instance ID when management mode is enabled."
   value       = module.compute_host.instance_id
 }
+
+output "rds_endpoint" {
+  description = "RDS connection endpoint (host:port) when management mode is enabled."
+  value       = module.rds_instance.db_endpoint
+}

@@ -14,12 +14,38 @@ module "ecr" {
   tags                     = local.common_tags
 }
 
+module "app_sg" {
+  source = "../../modules/app_security_group"
+
+  create_sg             = var.manage_app_sg
+  vpc_id                = var.vpc_id
+  sg_name               = var.app_sg_name
+  rds_security_group_id = var.rds_security_group_id
+  tags                  = local.common_tags
+}
+
 module "rds_ingress" {
   source = "../../modules/rds_ingress_rule"
 
   create_rule           = var.manage_rds_ingress_rule
   app_security_group_id = var.app_security_group_id
   rds_security_group_id = var.rds_security_group_id
+}
+
+module "rds_instance" {
+  source = "../../modules/rds_instance"
+
+  create_db              = var.manage_rds_instance
+  identifier             = var.db_identifier
+  instance_class         = var.db_instance_class
+  allocated_storage      = var.db_allocated_storage
+  db_name                = var.db_name
+  db_username            = var.db_username
+  db_password            = var.db_password
+  vpc_security_group_ids = [var.rds_security_group_id]
+  db_subnet_group_name   = var.db_subnet_group_name
+  parameter_group_name   = var.db_parameter_group_name
+  tags                   = local.common_tags
 }
 
 module "compute_host" {
