@@ -84,6 +84,43 @@ func (s *Service) LoginWithUserID(ctx context.Context, email, password string) (
 	return tokenString, user.ID, nil
 }
 
+func (s *Service) UpdateProfile(ctx context.Context, userID uint, email, username, newPassword string) (*models.User, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	if email != "" && email != user.Email {
+		existing, err := s.userRepo.GetByEmail(ctx, email)
+		if err == nil && existing != nil {
+			return nil, errors.New("email already in use")
+		}
+		user.Email = email
+	}
+
+	if username != "" && username != user.Username {
+		existing, err := s.userRepo.GetByUsername(ctx, username)
+		if err == nil && existing != nil {
+			return nil, errors.New("username already taken")
+		}
+		user.Username = username
+	}
+
+	if newPassword != "" {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, fmt.Errorf("failed to hash password: %w", err)
+		}
+		user.PasswordHash = string(hashed)
+	}
+
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	return user, nil
+}
+
 func (s *Service) ValidateToken(tokenString string) (uint, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.jwtSecret), nil

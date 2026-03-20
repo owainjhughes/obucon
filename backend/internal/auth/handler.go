@@ -116,6 +116,38 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 	})
 }
 
+type UpdateMeRequest struct {
+	Email       string `json:"email"`
+	Username    string `json:"username"`
+	NewPassword string `json:"new_password"`
+}
+
+func (h *AuthHandler) UpdateMe(c *gin.Context) {
+	userID, ok := helpers.UserIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var req UpdateMeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	user, err := h.authService.UpdateProfile(c.Request.Context(), userID, req.Email, req.Username, req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":       user.ID,
+		"email":    user.Email,
+		"username": user.Username,
+	})
+}
+
 func AuthMiddleware(authService *Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := ""
