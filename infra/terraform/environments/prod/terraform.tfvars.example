@@ -1,4 +1,5 @@
 # Copy to terraform.tfvars and fill with your values
+# Used as an example in case I forgor the format
 
 aws_region = "eu-west-2"
 
@@ -6,13 +7,14 @@ backend_repository_name  = "obucon"
 frontend_repository_name = "obucon-frontend"
 
 # Existing security groups
-app_security_group_id = "sg-xxxxxxxxxxxxxxxxx"
-rds_security_group_id = "sg-xxxxxxxxxxxxxxxxx"
+manage_rds_ingress_rule = false
+app_security_group_id   = "sg-xxxxxxxxxxxxxxxxx"
+rds_security_group_id   = "sg-xxxxxxxxxxxxxxxxx"
 
 # EC2 adoption (leave false until you import EC2)
 manage_ec2_instance = false
-instance_name       = "obucon"
+instance_name       = "obucon-server"
 ami_id              = "ami-xxxxxxxx"
 instance_type       = "t3.micro"
-key_name            = "obucon"
+key_name            = "obuconkeys"
 subnet_id           = "subnet-xxxxxxxxxxxxxxxxx"
