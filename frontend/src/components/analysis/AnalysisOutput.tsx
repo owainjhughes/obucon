@@ -22,9 +22,10 @@ function formatPercent(value: number) {
 }
 
 function getRating(knownPct: number) {
-  if (knownPct < 85) return { label: 'Poor', color: '#dc2626' }
-  if (knownPct < 95) return { label: 'Good', color: '#16a34a' }
-  return { label: 'Ineffective', color: '#c2410c' }
+  if (knownPct < 75) return { label: 'Ineffective', color: '#dc2626' }
+  if (knownPct < 85) return { label: 'Decent', color: '#d97706' }
+  if (knownPct < 95) return { label: 'Effective', color: '#16a34a' }
+  return { label: 'Decent', color: '#d97706' }
 }
 
 function createPieSegments(counts: Record<string, number>) {
@@ -274,9 +275,16 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {localMissing.slice(0, 30).map((word) => (
-                  <span key={word} className="rounded bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700">
+                  <button
+                    key={word}
+                    type="button"
+                    onClick={() => handleAddKnown(word)}
+                    disabled={addingByLemma[word]}
+                    title="Click to add to known vocabulary"
+                    className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100 hover:text-rose-900 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                  >
                     {word}
-                  </span>
+                  </button>
                 ))}
                 {missingCount > 30 && (
                   <span className="text-xs text-gray-500">+{missingCount - 30} more</span>

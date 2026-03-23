@@ -39,7 +39,7 @@ export default function Footer() {
                 </div>
 
                 <div className="mt-10 border-t border-gray-200 pt-6 text-center text-xs text-gray-500">
-                    2026 ObuCon. All rights reserved.
+                    © 2026 ObuCon. All rights reserved.
                 </div>
             </div>
         </footer>

@@ -19,7 +19,6 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="App">
-          <header className="App-header"></header>
           <Routes>
             <Route path="/" element={protectedElement(<Home />)} />
             <Route path="/vocabulary" element={protectedElement(<Vocab />)} />

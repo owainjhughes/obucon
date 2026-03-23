@@ -57,7 +57,7 @@ function FieldSection({ title, onSave, inputType = 'text', placeholder, currentV
           value={value}
           onChange={e => { setValue(e.target.value); setSuccess(false); setError('') }}
           placeholder={placeholder || `New ${title.toLowerCase()}`}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-[#55F] focus:ring-2 focus:ring-[#55F]/30"
         />
         {confirmLabel && (
           <input
@@ -65,7 +65,7 @@ function FieldSection({ title, onSave, inputType = 'text', placeholder, currentV
             value={confirm}
             onChange={e => { setConfirm(e.target.value); setError('') }}
             placeholder={confirmLabel}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-[#55F] focus:ring-2 focus:ring-[#55F]/30"
           />
         )}
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -73,7 +73,7 @@ function FieldSection({ title, onSave, inputType = 'text', placeholder, currentV
         <button
           type="submit"
           disabled={loading || !value.trim()}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-[#55F] text-white text-sm font-medium rounded-md hover:bg-[#44E] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Saving...' : 'Save changes'}
         </button>
