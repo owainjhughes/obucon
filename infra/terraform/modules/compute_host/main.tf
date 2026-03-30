@@ -29,3 +29,27 @@ resource "aws_instance" "app" {
     ]
   }
 }
+
+resource "aws_ec2_instance_state" "app" {
+  count = var.create_instance && var.desired_state != "" ? 1 : 0
+
+  instance_id = aws_instance.app[0].id
+  state       = var.desired_state
+}
+
+resource "aws_eip" "app" {
+  count = var.create_instance && var.manage_elastic_ip ? 1 : 0
+
+  domain = "vpc"
+
+  tags = merge(var.tags, {
+    Name = "${var.instance_name}-eip"
+  })
+}
+
+resource "aws_eip_association" "app" {
+  count = var.create_instance && var.manage_elastic_ip ? 1 : 0
+
+  instance_id   = aws_instance.app[0].id
+  allocation_id = aws_eip.app[0].id
+}

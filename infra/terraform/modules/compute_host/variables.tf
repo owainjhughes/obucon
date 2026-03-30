@@ -40,3 +40,20 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "manage_elastic_ip" {
+  description = "Set true to allocate and associate a dedicated Elastic IP to this instance."
+  type        = bool
+  default     = false
+}
+
+variable "desired_state" {
+  description = "Set to running or stopped to control EC2 power state. Leave empty to skip state management."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = contains(["", "running", "stopped"], var.desired_state)
+    error_message = "desired_state must be one of: \"\", \"running\", or \"stopped\"."
+  }
+}

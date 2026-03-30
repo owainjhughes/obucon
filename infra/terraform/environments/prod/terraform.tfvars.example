@@ -33,6 +33,8 @@ db_parameter_group_name = "default.postgres16"
 # ── EC2 adoption 
 # Set manage_ec2_instance = true after: terraform import 'module.compute_host.aws_instance.app[0]' i-xxxxxxxxxxxxxxxxx
 manage_ec2_instance = false
+manage_ec2_elastic_ip = false # set true to let Terraform allocate and attach a dedicated Elastic IP
+ec2_desired_state   = "" # set to "stopped" to pause costs, "running" to bring it back
 instance_name       = "obucon-server"
 ami_id              = "ami-xxxxxxxx"
 instance_type       = "t3.micro"

@@ -52,6 +52,8 @@ module "compute_host" {
   source = "../../modules/compute_host"
 
   create_instance   = var.manage_ec2_instance
+  manage_elastic_ip = var.manage_ec2_elastic_ip
+  desired_state     = var.ec2_desired_state
   instance_name     = var.instance_name
   ami_id            = var.ami_id
   instance_type     = var.instance_type

@@ -13,6 +13,11 @@ output "managed_instance_id" {
   value       = module.compute_host.instance_id
 }
 
+output "managed_instance_public_ip" {
+  description = "Elastic IP for the EC2 instance when Elastic IP management is enabled."
+  value       = module.compute_host.elastic_ip
+}
+
 output "rds_endpoint" {
   description = "RDS connection endpoint (host:port) when management mode is enabled."
   value       = module.rds_instance.db_endpoint

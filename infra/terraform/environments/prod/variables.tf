@@ -40,6 +40,12 @@ variable "manage_ec2_instance" {
   default     = false
 }
 
+variable "manage_ec2_elastic_ip" {
+  description = "Set true to allocate and associate a dedicated Elastic IP to the EC2 instance."
+  type        = bool
+  default     = false
+}
+
 variable "manage_app_sg" {
   description = "Set true after importing the app security group into Terraform state."
   type        = bool
@@ -129,6 +135,17 @@ variable "instance_type" {
   description = "EC2 instance type."
   type        = string
   default     = "t3.micro"
+}
+
+variable "ec2_desired_state" {
+  description = "Set to running or stopped to control EC2 power state. Leave empty to skip state management."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = contains(["", "running", "stopped"], var.ec2_desired_state)
+    error_message = "ec2_desired_state must be one of: \"\", \"running\", or \"stopped\"."
+  }
 }
 
 variable "key_name" {
