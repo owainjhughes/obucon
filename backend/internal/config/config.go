@@ -1,10 +1,16 @@
 package config
 
 import (
+	"context"
+	"encoding/json"
+	"log"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/joho/godotenv"
 )
 
@@ -25,6 +31,12 @@ type Config struct {
 
 func Load() *Config {
 	godotenv.Load()
+
+	if secretName := os.Getenv("APP_SECRET_NAME"); secretName != "" {
+		if err := loadSecretsManagerEnv(secretName); err != nil {
+			log.Printf("Warning: failed to load secrets from Secrets Manager (%s): %v", secretName, err)
+		}
+	}
 
 	allowedOrigins := getEnv("ALLOWED_ORIGINS", "")
 	if allowedOrigins == "" {
@@ -54,6 +66,36 @@ func Load() *Config {
 		TrustedProxies: splitCSV(getEnv("TRUSTED_PROXIES", "127.0.0.1,::1"), []string{"127.0.0.1", "::1"}),
 		CookieSecure:   getEnvBool("COOKIE_SECURE", false),
 	}
+}
+
+// loadSecretsManagerEnv fetches the named secret from AWS Secrets Manager and
+// injects each key into the process environment. Existing env vars are not
+// overwritten, so docker-compose / local overrides still take precedence.
+func loadSecretsManagerEnv(secretName string) error {
+	cfg, err := config.LoadDefaultConfig(context.Background())
+	if err != nil {
+		return err
+	}
+
+	client := secretsmanager.NewFromConfig(cfg)
+	result, err := client.GetSecretValue(context.Background(), &secretsmanager.GetSecretValueInput{
+		SecretId: aws.String(secretName),
+	})
+	if err != nil {
+		return err
+	}
+
+	var secrets map[string]string
+	if err := json.Unmarshal([]byte(*result.SecretString), &secrets); err != nil {
+		return err
+	}
+
+	for k, v := range secrets {
+		if _, exists := os.LookupEnv(k); !exists {
+			os.Setenv(k, v)
+		}
+	}
+	return nil
 }
 
 func getEnv(key, fallback string) string {

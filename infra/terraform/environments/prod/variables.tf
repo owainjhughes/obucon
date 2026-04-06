@@ -119,6 +119,18 @@ variable "db_parameter_group_name" {
   default     = "default.postgres16"
 }
 
+variable "manage_static_frontend" {
+  description = "Set true to create the S3 bucket and CloudFront distribution for the frontend."
+  type        = bool
+  default     = false
+}
+
+variable "frontend_bucket_name" {
+  description = "Globally unique S3 bucket name for the frontend static files."
+  type        = string
+  default     = ""
+}
+
 variable "instance_name" {
   description = "Name tag for the EC2 instance."
   type        = string
@@ -156,6 +168,25 @@ variable "key_name" {
 
 variable "subnet_id" {
   description = "Subnet ID for EC2 instance."
+  type        = string
+  default     = ""
+}
+
+variable "manage_app_secrets" {
+  description = "Set true to create the Secrets Manager secret and EC2 IAM instance profile."
+  type        = bool
+  default     = false
+}
+
+variable "jwt_secret" {
+  description = "JWT signing secret for the application."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "allowed_origins" {
+  description = "Comma-separated CORS allowed origins (e.g. https://obucon.com,https://abc.cloudfront.net)."
   type        = string
   default     = ""
 }

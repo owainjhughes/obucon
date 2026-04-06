@@ -57,3 +57,9 @@ variable "desired_state" {
     error_message = "desired_state must be one of: \"\", \"running\", or \"stopped\"."
   }
 }
+
+variable "instance_profile_name" {
+  description = "IAM instance profile name to attach to the EC2 instance. Leave empty to skip."
+  type        = string
+  default     = ""
+}

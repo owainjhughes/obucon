@@ -6,6 +6,7 @@ resource "aws_instance" "app" {
   key_name               = var.key_name
   subnet_id              = var.subnet_id
   vpc_security_group_ids = [var.security_group_id]
+  iam_instance_profile   = var.instance_profile_name != "" ? var.instance_profile_name : null
 
   tags = merge(var.tags, {
     Name = var.instance_name
