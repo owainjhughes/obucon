@@ -131,6 +131,12 @@ variable "frontend_bucket_name" {
   default     = ""
 }
 
+variable "frontend_custom_domain" {
+  description = "Custom domain for the CloudFront distribution (e.g. obucon.com)."
+  type        = string
+  default     = ""
+}
+
 variable "instance_name" {
   description = "Name tag for the EC2 instance."
   type        = string

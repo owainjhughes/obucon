@@ -33,6 +33,11 @@ output "frontend_cloudfront_domain" {
   value       = module.static_frontend.cloudfront_domain
 }
 
+output "acm_validation_records" {
+  description = "Add these CNAME records in Cloudflare to validate the ACM certificate."
+  value       = module.static_frontend.acm_validation_records
+}
+
 output "frontend_cloudfront_distribution_id" {
   description = "CloudFront distribution ID used for cache invalidation in CI."
   value       = module.static_frontend.cloudfront_distribution_id

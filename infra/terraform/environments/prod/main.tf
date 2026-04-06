@@ -85,7 +85,12 @@ module "compute_host" {
 module "static_frontend" {
   source = "../../modules/static_frontend"
 
-  create      = var.manage_static_frontend
-  bucket_name = var.frontend_bucket_name
-  tags        = local.common_tags
+  providers = {
+    aws.us_east_1 = aws.us_east_1
+  }
+
+  create        = var.manage_static_frontend
+  bucket_name   = var.frontend_bucket_name
+  custom_domain = var.frontend_custom_domain
+  tags          = local.common_tags
 }

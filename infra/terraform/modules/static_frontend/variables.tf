@@ -9,6 +9,12 @@ variable "bucket_name" {
   type        = string
 }
 
+variable "custom_domain" {
+  description = "Custom domain for CloudFront (e.g. obucon.com). Leave empty to use the default cloudfront.net domain."
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Tags to apply to resources."
   type        = map(string)

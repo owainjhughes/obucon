@@ -26,12 +26,28 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
   signing_protocol                  = "sigv4"
 }
 
+# ACM certificate for custom domain (must be in us-east-1 for CloudFront)
+resource "aws_acm_certificate" "frontend" {
+  count = var.create && var.custom_domain != "" ? 1 : 0
+
+  provider          = aws.us_east_1
+  domain_name       = var.custom_domain
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = var.tags
+}
+
 resource "aws_cloudfront_distribution" "frontend" {
   count = var.create ? 1 : 0
 
   enabled             = true
   default_root_object = "index.html"
   price_class         = "PriceClass_100"
+  aliases             = var.custom_domain != "" ? [var.custom_domain] : []
 
   origin {
     domain_name              = aws_s3_bucket.frontend[0].bucket_regional_domain_name
@@ -78,7 +94,10 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = var.custom_domain == ""
+    acm_certificate_arn            = var.custom_domain != "" ? aws_acm_certificate.frontend[0].arn : null
+    ssl_support_method             = var.custom_domain != "" ? "sni-only" : null
+    minimum_protocol_version       = var.custom_domain != "" ? "TLSv1.2_2021" : null
   }
 
   tags = var.tags
