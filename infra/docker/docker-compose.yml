@@ -7,3 +7,16 @@ services:
     ports:
       - "8080:8080"
     restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: obucon-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/ec2-user/.docker/config.json:/config.json:ro
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=60
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+    command: obucon-backend
