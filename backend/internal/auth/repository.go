@@ -42,6 +42,7 @@ func (r *Repository) Update(ctx context.Context, user *models.User) error {
 	return r.db.WithContext(ctx).Save(user).Error
 }
 
-func (r *Repository) Delete(ctx context.Context, id uint) error {
-	return r.db.WithContext(ctx).Delete(&models.User{}, id).Error
-}
+// Unused, can be used if there is ever a case where deleting a user is required
+//func (r *Repository) Delete(ctx context.Context, id uint) error {
+//	return r.db.WithContext(ctx).Delete(&models.User{}, id).Error
+//}

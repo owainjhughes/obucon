@@ -40,13 +40,13 @@ func isKatakanaToken(text string) bool {
 	if text == "" {
 		return false
 	}
-	// Check if all characters are hiragana, katakana, or marks (U+30A0 to U+30FF) are unicode charaters for katakana)
+	// Returns true only if the token contains katakana (U+30A0–U+30FF) and no hiragana.
 	hasKatakana := false
 	for _, r := range text {
-		if (r >= 0x30A0 && r <= 0x30FF) || r == 0x30FC { // katakana or prolonged vowel mark
+		if (r >= 0x30A0 && r <= 0x30FF) || r == 0x30FC { // katakana range or prolonged vowel mark
 			hasKatakana = true
 		} else if (r >= 0x3040 && r <= 0x309F) || r == 0x3099 || r == 0x309A {
-			// has non-Japanese character
+			// hiragana present — not a pure katakana token
 			return false
 		}
 	}

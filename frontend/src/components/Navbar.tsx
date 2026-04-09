@@ -7,7 +7,7 @@ const navigation = [
 	{ name: "Home", href: "/" },
 	{ name: "Analysis", href: "/analysis" },
 	{ name: "Vocabulary", href: "/vocabulary" },
-	{ name: "jWiki", href: "https://ja.wikipedia.org/wiki/%E3%83%A1%E3%82%A4%E3%83%B3%E3%83%9A%E3%83%BC%E3%82%B8"}
+	{ name: "jWiki", href: "https://ja.wikipedia.org/wiki/%E3%83%A1%E3%82%A4%E3%83%B3%E3%83%9A%E3%83%BC%E3%82%B8", external: true }
 ]
 
 function classNames(...classes: string[]) {
@@ -46,9 +46,22 @@ export default function Navbar() {
 						<div className="hidden sm:ml-6 sm:block">
 							<div className="flex items-center gap-4">
 								{navigation.map((item) => {
-									const isCurrent = item.href === "/"
-										? location.pathname === item.href
-										: location.pathname.startsWith(item.href)
+								const isCurrent = !item.external && (item.href === "/"
+									? location.pathname === item.href
+									: location.pathname.startsWith(item.href))
+								if (item.external) {
+									return (
+										<a
+											key={item.name}
+											href={item.href}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm font-medium text-gray-600 hover:text-gray-800"
+										>
+											{item.name}
+										</a>
+									)
+								}
 									return (
 										<Link
 											key={item.name}
@@ -117,9 +130,22 @@ export default function Navbar() {
 			<DisclosurePanel className="sm:hidden">
 				<div className="space-y-1 px-4 pb-3 pt-2">
 					{navigation.map((item) => {
-						const isCurrent = item.href === "/"
+						const isCurrent = !item.external && (item.href === "/"
 							? location.pathname === item.href
-							: location.pathname.startsWith(item.href)
+							: location.pathname.startsWith(item.href))
+						if (item.external) {
+							return (
+								<a
+									key={item.name}
+									href={item.href}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="block py-2 text-base font-medium text-gray-900 hover:text-gray-800"
+								>
+									{item.name}
+								</a>
+							)
+						}
 						return (
 							<DisclosureButton
 								key={item.name}

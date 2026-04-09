@@ -78,7 +78,7 @@ func ExtractTextFromFileHeader(fileHeader *multipart.FileHeader) (*TextFileExtra
 		}
 	}
 
-	normalizedText := NormalizeTextForAnalysis(extractedText)
+	normalizedText := normalizeTextForAnalysis(extractedText)
 	if strings.TrimSpace(normalizedText) == "" {
 		return nil, fmt.Errorf("file contains no readable text")
 	}
@@ -175,7 +175,7 @@ func extractPdfText(data []byte) (string, error) {
 	return text.String(), nil
 }
 
-func NormalizeTextForAnalysis(text string) string {
+func normalizeTextForAnalysis(text string) string {
 	normalized := strings.ReplaceAll(text, "\r\n", "\n")
 	normalized = strings.ReplaceAll(normalized, "\r", "\n")
 
