@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react"
 import Layout from "../components/Layout"
 import { apiClient } from "../api/client"
 import { getApiErrorMessage } from "../api/errors"
+import { getAnkiDeckNames, exportVocabToAnki, importVocabFromAnki } from "../api/ankiConnect"
 
 interface VocabEntry {
   lemma: string
@@ -21,6 +22,14 @@ export default function Vocab() {
   const [editGradeLevel, setEditGradeLevel] = useState("5")
   const [savingLemma, setSavingLemma] = useState<string | null>(null)
   const [deletingLemma, setDeletingLemma] = useState<string | null>(null)
+
+  const [ankiExportDeck, setAnkiExportDeck] = useState("GinAPI Japanese")
+  const [ankiDecks, setAnkiDecks] = useState<string[]>([])
+  const [selectedAnkiDeck, setSelectedAnkiDeck] = useState("")
+  const [exportingAnki, setExportingAnki] = useState(false)
+  const [importingAnki, setImportingAnki] = useState(false)
+  const [loadingAnkiDecks, setLoadingAnkiDecks] = useState(false)
+  const [ankiMessage, setAnkiMessage] = useState<{ text: string; type: "success" | "error" } | null>(null)
 
   const loadVocab = async () => {
     setIsLoading(true)
@@ -125,6 +134,59 @@ export default function Vocab() {
     }
   }
 
+  const handleExportToAnki = async () => {
+    setExportingAnki(true)
+    setAnkiMessage(null)
+    try {
+      const { added, skipped } = await exportVocabToAnki(
+        vocab.map((e) => ({ lemma: e.lemma, meaning: e.meaning })),
+        ankiExportDeck,
+      )
+      setAnkiMessage({ text: `Exported ${added} card(s) to Anki. ${skipped} duplicate(s) skipped.`, type: "success" })
+    } catch (err: unknown) {
+      setAnkiMessage({ text: err instanceof Error ? err.message : "Export failed", type: "error" })
+    } finally {
+      setExportingAnki(false)
+    }
+  }
+
+  const handleLoadAnkiDecks = async () => {
+    setLoadingAnkiDecks(true)
+    setAnkiMessage(null)
+    try {
+      const decks = await getAnkiDeckNames()
+      setAnkiDecks(decks)
+      if (decks.length > 0) setSelectedAnkiDeck(decks[0])
+    } catch (err: unknown) {
+      setAnkiMessage({ text: err instanceof Error ? err.message : "Could not load Anki decks", type: "error" })
+    } finally {
+      setLoadingAnkiDecks(false)
+    }
+  }
+
+  const handleImportFromAnki = async () => {
+    if (!selectedAnkiDeck) return
+    setImportingAnki(true)
+    setAnkiMessage(null)
+    try {
+      const entries = await importVocabFromAnki(selectedAnkiDeck)
+      const results = await Promise.allSettled(
+        entries.map((e) => apiClient.post("/vocab/known", { lemma: e.lemma, language: "ja" })),
+      )
+      const added = results.filter((r) => r.status === "fulfilled").length
+      const failed = results.filter((r) => r.status === "rejected").length
+      await loadVocab()
+      setAnkiMessage({
+        text: `Imported ${added} word(s) from Anki.${failed > 0 ? ` ${failed} failed (may already exist).` : ""}`,
+        type: "success",
+      })
+    } catch (err: unknown) {
+      setAnkiMessage({ text: err instanceof Error ? err.message : "Import failed", type: "error" })
+    } finally {
+      setImportingAnki(false)
+    }
+  }
+
   return (
     <Layout>
       <section className="mx-auto max-w-4xl px-4 py-10">
@@ -134,6 +196,98 @@ export default function Vocab() {
             Words you have marked as known. Use this list to review or update your vocabulary.
           </p>
 
+<div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900">Anki Sync</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Export your vocabulary to Anki as flashcards, or import words from an existing Anki deck. Requires Anki to
+            be open with the{" "}
+            <a
+              href="https://ankiweb.net/shared/info/2055492159"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[#55F] underline"
+            >
+              AnkiConnect
+            </a>{" "}
+            plugin installed.
+          </p>
+
+          {ankiMessage && (
+            <div
+              className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
+                ankiMessage.type === "success"
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : "border-red-200 bg-red-50 text-red-700"
+              }`}
+            >
+              {ankiMessage.text}
+            </div>
+          )}
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-800">Export to Anki</h3>
+              <p className="mt-1 text-xs text-gray-500">
+                Pushes your {vocab.length} known word(s) into an Anki deck as flashcards (Front: word, Back: meaning).
+              </p>
+              <div className="mt-3 flex flex-col gap-2">
+                <input
+                  value={ankiExportDeck}
+                  onChange={(e) => setAnkiExportDeck(e.target.value)}
+                  placeholder="Deck name"
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#55F] focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleExportToAnki}
+                  disabled={exportingAnki || vocab.length === 0}
+                  className="rounded-full border border-[#55F] bg-[#55F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#44E] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {exportingAnki ? "Exporting..." : "Export to Anki"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-800">Import from Anki</h3>
+              <p className="mt-1 text-xs text-gray-500">
+                Pulls the front field of each note from an Anki deck into your known vocabulary list.
+              </p>
+              <div className="mt-3 flex flex-col gap-2">
+                {ankiDecks.length === 0 ? (
+                  <button
+                    type="button"
+                    onClick={handleLoadAnkiDecks}
+                    disabled={loadingAnkiDecks}
+                    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {loadingAnkiDecks ? "Loading decks..." : "Load Anki decks"}
+                  </button>
+                ) : (
+                  <>
+                    <select
+                      value={selectedAnkiDeck}
+                      onChange={(e) => setSelectedAnkiDeck(e.target.value)}
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#55F] focus:outline-none"
+                    >
+                      {ankiDecks.map((deck) => (
+                        <option key={deck} value={deck}>{deck}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleImportFromAnki}
+                      disabled={importingAnki || !selectedAnkiDeck}
+                      className="rounded-full border border-[#55F] bg-[#55F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#44E] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {importingAnki ? "Importing..." : "Import from Anki"}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
           <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
               <input

@@ -50,3 +50,5 @@ type JapaneseDictionary struct {
 func (JapaneseDictionary) TableName() string {
 	return "japanese_dictionary"
 }
+
+// Reference: https://gorm.io/docs/models.html

@@ -46,7 +46,7 @@ func isKatakanaToken(text string) bool {
 		if (r >= 0x30A0 && r <= 0x30FF) || r == 0x30FC { // katakana range or prolonged vowel mark
 			hasKatakana = true
 		} else if (r >= 0x3040 && r <= 0x309F) || r == 0x3099 || r == 0x309A {
-			// hiragana present — not a pure katakana token
+			// hiragana present, not a pure katakana token
 			return false
 		}
 	}
