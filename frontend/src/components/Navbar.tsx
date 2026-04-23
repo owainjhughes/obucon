@@ -171,13 +171,6 @@ export default function Navbar() {
 									Your profile
 								</DisclosureButton>
 								<DisclosureButton
-									as={Link}
-									to="/settings"
-									className="block py-2 text-base font-medium text-gray-900 hover:text-gray-800"
-								>
-									Settings
-								</DisclosureButton>
-								<DisclosureButton
 									as="button"
 									type="button"
 									onClick={handleLogout}
