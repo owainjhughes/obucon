@@ -5,7 +5,7 @@ Online web application that determines the suitability of an online text-based r
 
 It is like a much more personalised and learning-focused version of [jreadability](https://jreadability.net/sys/en) or [Kuma Learn](https://app.kumalearn.com/text-analysis)
 
-Can be foudn at [this link](https://obucon.com)
+Can be found at [this link](https://obucon.com)
 
 #### Architecture Decisions
 
@@ -27,3 +27,10 @@ In backend:
 ```
 go run cmd/server/main.go
 ```
+
+Or just 
+```
+make dev
+```
+
+in software
