@@ -3,7 +3,7 @@ import { apiClient } from '../../api/client'
 import { getApiErrorMessage } from '../../api/errors'
 import AnalysisOutput from './AnalysisOutput'
 
-type AnalysisMode = 'text' | 'file' | 'link'
+type AnalysisMode = 'text' | 'file'
 
 interface Token {
   surface: string
@@ -87,17 +87,17 @@ export default function AnalysisInput() {
   return (
     <section className="px-4 py-10">
       <div className="mx-auto rounded-xl border border-gray-200 bg-white p-6 shadow-sm max-w-3xl">
-        <h2 className="text-lg font-semibold text-gray-900">Analysis</h2>
-        <p className="mt-1 text-sm text-gray-600">Choose a mode to provide your input.</p>
+        <h2 className="text-lg font-semibold text-gray-900">Text Analysis</h2>
+        <p className="mt-1 text-sm text-gray-500">Choose a mode to provide your input.</p>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1 gap-1">
           <button
             type="button"
             onClick={() => setMode('text')}
-            className={`rounded-full border px-4 py-1.5 text-sm ${
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
               mode === 'text'
-                ? 'border-[#55F] bg-[#55F] text-white'
-                : 'border-gray-300 text-gray-700 hover:border-[#55F]'
+                ? 'bg-white text-[#55F] shadow-sm border border-gray-200'
+                : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             Text
@@ -105,45 +105,35 @@ export default function AnalysisInput() {
           <button
             type="button"
             onClick={() => setMode('file')}
-            className={`rounded-full border px-4 py-1.5 text-sm ${
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
               mode === 'file'
-                ? 'border-[#55F] bg-[#55F] text-white'
-                : 'border-gray-300 text-gray-700 hover:border-[#55F]'
+                ? 'bg-white text-[#55F] shadow-sm border border-gray-200'
+                : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             File
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('link')}
-            className={`rounded-full border px-4 py-1.5 text-sm ${
-              mode === 'link'
-                ? 'border-[#55F] bg-[#55F] text-white'
-                : 'border-gray-300 text-gray-700 hover:border-[#55F]'
-            }`}
-          >
-            Link
           </button>
         </div>
 
         <div className="mt-6">
           {mode === 'text' && (
             <label className="block">
-              <span className="text-sm font-medium text-gray-700">Paste text</span>
+              <span className="text-sm font-medium text-gray-600">Paste text</span>
               <textarea
                 rows={8}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-900 focus:border-[#55F] focus:outline-none"
-                placeholder="Enter the text you want to analyze"
+                className="mt-2 w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-900 focus:border-[#55F] focus:outline-none focus:ring-2 focus:ring-[#55F]/10 resize-none"
+                placeholder="Paste the text you want to analyse"
               />
             </label>
           )}
 
           {mode === 'file' && (
-            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6">
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">Upload file (.txt, .md, .docx, .pdf)</span>
+            <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-6 py-8 text-center hover:border-[#55F] hover:bg-indigo-50/30 transition-colors">
+              <label className="block cursor-pointer">
+                <span className="text-sm font-medium text-gray-600">Upload file</span>
+                <span className="block text-xs text-gray-400 mt-0.5">.txt, .md, .docx, .pdf</span>
                 <input
                   type="file"
                   accept=".txt,.md,.docx,.pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
@@ -152,7 +142,7 @@ export default function AnalysisInput() {
                     setSelectedFile(file)
                     setError('')
                   }}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-900 file:mr-3 file:rounded-md file:border-0 file:bg-[#55F] file:px-3 file:py-1.5 file:text-sm file:text-white"
+                  className="mt-3 block w-full text-sm text-gray-500 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-[#55F] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[#44E]"
                 />
               </label>
               {selectedFile && (
@@ -163,18 +153,13 @@ export default function AnalysisInput() {
             </div>
           )}
 
-          {mode === 'link' && (
-            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-500 text-center">
-              Link analysis is not yet available.
-            </div>
-          )}
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex items-center justify-end gap-3">
             <button
               onClick={handleAnalyse}
               disabled={isLoading || !canAnalyse}
-              className="rounded-full border px-4 py-1.5 text-sm border-[#55F] bg-[#55F] text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-[#55F] bg-[#55F] px-5 py-2 text-sm font-semibold text-white hover:bg-[#44E] disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
-              {isLoading ? 'Analysing...' : 'Analyse'}
+              {isLoading ? 'Analysing…' : 'Analyse'}
             </button>
           </div>
 

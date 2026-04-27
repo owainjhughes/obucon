@@ -173,7 +173,7 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
           <button
             type="button"
             onClick={onReset}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800"
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
           >
             <span aria-hidden="true">&larr;</span>
             New analysis
@@ -182,7 +182,7 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
             <button
               type="button"
               onClick={() => setShowReview(true)}
-              className="rounded-full border border-[#55F] px-3 py-1 text-xs font-semibold text-[#55F] hover:bg-[#55F] hover:text-white"
+              className="rounded-lg border border-[#55F] bg-[#55F] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#44E] transition-colors"
             >
               Review {reviewableCount} unknown word{reviewableCount === 1 ? '' : 's'}
             </button>
@@ -190,7 +190,7 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
         </div>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900">Text</h3>
+          <h3 className="mb-4 border-b border-gray-100 pb-3 text-base font-semibold text-gray-900">Text</h3>
           <div className="text-base leading-loose">
             {displayTokens.map((token, idx) => {
               let className = `inline font-medium `
@@ -211,10 +211,10 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
         </div>
 
         <aside className="lg:col-span-1 self-start rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900">Stats</h3>
+          <h3 className="mb-4 border-b border-gray-100 pb-3 text-base font-semibold text-gray-900">Stats</h3>
 
-          <div className="mt-6">
-            <div className="flex items-center gap-3">
+          <div className="mt-4">
+            <div className="flex items-start gap-6">
               <div>
                 <div className="text-sm font-semibold text-gray-700">Known words</div>
                 <div className="text-2xl font-bold text-gray-900">{knownCount}</div>

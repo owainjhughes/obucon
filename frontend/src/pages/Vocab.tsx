@@ -12,6 +12,24 @@ interface VocabEntry {
   meaning: string
 }
 
+const jlptBadge: Record<number, string> = {
+  1: 'bg-blue-700 text-white',
+  2: 'bg-indigo-600 text-white',
+  3: 'bg-purple-600 text-white',
+  4: 'bg-orange-500 text-white',
+  5: 'bg-green-600 text-white',
+}
+
+function JlptBadge({ level }: { level: number | null | undefined }) {
+  if (level == null) return <span className="text-gray-400">—</span>
+  const cls = jlptBadge[level] ?? 'bg-gray-500 text-white'
+  return (
+    <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-bold ${cls}`}>
+      N{level}
+    </span>
+  )
+}
+
 export default function Vocab() {
   const [vocab, setVocab] = useState<VocabEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -289,7 +307,7 @@ export default function Vocab() {
                   <col className="w-[17%]" />
                 </colgroup>
                 <thead>
-                  <tr className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-600">
+                  <tr className="border-b-2 border-[#55F] bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     <th className="px-4 py-3">Word</th>
                     <th className="px-4 py-3">Hiragana</th>
                     <th className="px-4 py-3">Meaning</th>
@@ -299,7 +317,7 @@ export default function Vocab() {
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
                   {paginatedVocab.map((entry) => (
-                    <tr key={entry.lemma}>
+                    <tr key={entry.lemma} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 font-semibold text-gray-900">
                         <div className="truncate" title={entry.lemma}>{entry.lemma}</div>
                       </td>
@@ -331,7 +349,7 @@ export default function Vocab() {
                             <option value="1">N1</option>
                           </select>
                         ) : (
-                          entry.grade_level != null ? `N${entry.grade_level}` : "—"
+                          <JlptBadge level={entry.grade_level} />
                         )}
                       </td>
                       <td className="px-4 py-3">

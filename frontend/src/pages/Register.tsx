@@ -31,7 +31,9 @@ export default function Register() {
   return (
     <Layout>
       <section className="mx-auto max-w-md px-4 py-12">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div className="h-1 bg-[#55F]" />
+            <div className="p-6">
           <h1 className="text-2xl font-semibold text-gray-900">Create account</h1>
           <p className="mt-1 text-sm text-gray-600">
             Register to save your vocabulary and analyses.
@@ -101,7 +103,8 @@ export default function Register() {
               Log in
             </Link>
           </p>
-        </div>
+            </div>
+          </div>
       </section>
     </Layout>
   );

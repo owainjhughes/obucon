@@ -28,23 +28,23 @@ export default function Navbar() {
 	return (
 		<Disclosure
 			as="nav"
-			className="bg-gray-100 text-gray-900">
+			className="bg-white border-b border-gray-200">
 			<div className="mx-auto max-w-6xl px-4">
-				<div className="flex h-14 items-center gap-2">
+				<div className="flex h-14 items-stretch gap-2">
 					{/* Hamburger - mobile only */}
-					<div className="sm:hidden">
-						<DisclosureButton className="group inline-flex items-center justify-center rounded p-2 hover:bg-gray-200">
+					<div className="sm:hidden flex items-center">
+						<DisclosureButton className="group inline-flex items-center justify-center rounded p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900">
 							<span className="sr-only">Open main menu</span>
-							<Bars3Icon aria-hidden="true" className="block size-6 group-data-[open]:hidden" />
-							<XMarkIcon aria-hidden="true" className="hidden size-6 group-data-[open]:block" />
+							<Bars3Icon aria-hidden="true" className="block size-5 group-data-[open]:hidden" />
+							<XMarkIcon aria-hidden="true" className="hidden size-5 group-data-[open]:block" />
 						</DisclosureButton>
 					</div>
-					<div className="flex flex-1 items-center">
+					<div className="flex flex-1 items-stretch">
 						<div className="flex shrink-0 items-center">
 							<img alt="ObuCon" src="/android-chrome-192x192.png" className="h-7 w-auto" />
 						</div>
-						<div className="hidden sm:ml-6 sm:flex sm:items-center sm:gap-4">
-							<div className="flex items-center gap-4">
+						<div className="hidden sm:ml-6 sm:flex sm:items-stretch">
+							<div className="flex items-stretch gap-1">
 								{navigation.map((item) => {
 								const isCurrent = !item.external && (item.href === "/"
 									? location.pathname === item.href
@@ -56,7 +56,7 @@ export default function Navbar() {
 											href={item.href}
 											target="_blank"
 											rel="noopener noreferrer"
-											className="text-sm font-medium text-gray-600 hover:text-gray-800"
+											className="inline-flex items-center px-3 text-sm font-medium text-gray-500 hover:text-gray-900 border-b-2 border-transparent transition-colors"
 										>
 											{item.name}
 										</a>
@@ -68,8 +68,10 @@ export default function Navbar() {
 											to={item.href}
 											aria-current={isCurrent ? "page" : undefined}
 											className={classNames(
-												isCurrent ? "text-black" : "text-gray-600 hover:text-gray-800",
-												"text-sm font-medium"
+												isCurrent
+													? "border-b-2 border-[#55F] text-[#55F] font-semibold"
+													: "border-b-2 border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300",
+												"inline-flex items-center px-3 text-sm font-medium transition-colors"
 											)}
 										>
 											{item.name}
@@ -82,28 +84,24 @@ export default function Navbar() {
 					<div className="hidden sm:flex items-center sm:ml-6">
 						{user ? (
 							<Menu as="div" className="relative ml-3">
-								<MenuButton className="relative flex rounded-full">
+								<MenuButton className="relative flex items-center justify-center rounded-full ring-2 ring-transparent hover:ring-gray-200 transition-all">
 									<span className="absolute -inset-1.5" />
 									<span className="sr-only">Open user menu</span>
 									<img alt="" src="user.png" className="size-8 rounded-full" />
 								</MenuButton>
 
-								<MenuItems transition className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-gray-800 py-1">
+								<MenuItems transition className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
 									<MenuItem>
-										<Link to="/profile" className="block px-4 py-2 text-sm text-gray-100 hover:bg-gray-700">
+										<Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
 											Your profile
 										</Link>
 									</MenuItem>
-									<MenuItem>
-										<Link to="/settings" className="block px-4 py-2 text-sm text-gray-100 hover:bg-gray-700">
-											Settings
-										</Link>
-									</MenuItem>
+									<div className="my-1 border-t border-gray-100" />
 									<MenuItem>
 										<button
 											type="button"
 											onClick={handleLogout}
-											className="block w-full px-4 py-2 text-left text-sm text-gray-100 hover:bg-gray-700"
+											className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
 										>
 											Sign out
 										</button>
@@ -111,13 +109,13 @@ export default function Navbar() {
 								</MenuItems>
 							</Menu>
 						) : (
-							<div className="flex items-center gap-2">
-								<Link to="/login" className="text-sm font-semibold text-gray-700 hover:text-gray-900">
+							<div className="flex items-center gap-3">
+								<Link to="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
 									Login
 								</Link>
 								<Link
 									to="/register"
-									className="rounded-full border border-[#55F] px-3 py-1 text-sm font-semibold text-[#55F] hover:bg-[#55F] hover:text-white"
+									className="rounded-full border border-[#55F] px-4 py-1.5 text-sm font-semibold text-[#55F] hover:bg-[#55F] hover:text-white transition-colors"
 								>
 									Register
 								</Link>
@@ -127,8 +125,8 @@ export default function Navbar() {
 				</div>
 			</div>
 
-			<DisclosurePanel className="sm:hidden">
-				<div className="space-y-1 px-4 pb-3 pt-2">
+			<DisclosurePanel className="sm:hidden border-t border-gray-100">
+				<div className="space-y-0.5 px-4 pb-3 pt-2">
 					{navigation.map((item) => {
 						const isCurrent = !item.external && (item.href === "/"
 							? location.pathname === item.href
@@ -140,7 +138,7 @@ export default function Navbar() {
 									href={item.href}
 									target="_blank"
 									rel="noopener noreferrer"
-									className="block py-2 text-base font-medium text-gray-900 hover:text-gray-800"
+									className="block rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
 								>
 									{item.name}
 								</a>
@@ -153,21 +151,23 @@ export default function Navbar() {
 								to={item.href}
 								aria-current={isCurrent ? "page" : undefined}
 								className={classNames(
-									isCurrent ? "text-black" : "text-gray-900 hover:text-gray-800",
-									"block py-2 text-base font-medium"
+									isCurrent
+										? "bg-indigo-50 text-[#55F] font-semibold"
+										: "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+									"block rounded-md px-3 py-2 text-sm font-medium"
 								)}
 							>
 								{item.name}
 							</DisclosureButton>
 						)
 					})}
-					<div className="border-t border-gray-200 mt-2 pt-3">
+					<div className="border-t border-gray-200 mt-2 pt-2">
 						{user ? (
 							<>
 								<DisclosureButton
 									as={Link}
 									to="/profile"
-									className="block py-2 text-base font-medium text-gray-900 hover:text-gray-800"
+									className="block rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
 								>
 									Your profile
 								</DisclosureButton>
@@ -175,7 +175,7 @@ export default function Navbar() {
 									as="button"
 									type="button"
 									onClick={handleLogout}
-									className="block w-full text-left py-2 text-base font-medium text-gray-900 hover:text-gray-800"
+									className="block w-full text-left rounded-md px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
 								>
 									Sign out
 								</DisclosureButton>
@@ -185,14 +185,14 @@ export default function Navbar() {
 								<DisclosureButton
 									as={Link}
 									to="/login"
-									className="block py-2 text-base font-medium text-gray-900 hover:text-gray-800"
+									className="block rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
 								>
 									Login
 								</DisclosureButton>
 								<DisclosureButton
 									as={Link}
 									to="/register"
-									className="block py-2 text-base font-medium text-[#55F] hover:text-[#44E]"
+									className="block rounded-md px-3 py-2 text-sm font-semibold text-[#55F] hover:bg-indigo-50"
 								>
 									Register
 								</DisclosureButton>

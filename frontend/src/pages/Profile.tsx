@@ -46,7 +46,7 @@ function FieldSection({ title, onSave, inputType = 'text', placeholder, currentV
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6">
+    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-gray-900 mb-1">{title}</h2>
       {currentValue && (
         <p className="text-sm text-gray-500 mb-4">Current: <span className="font-medium text-gray-700">{currentValue}</span></p>
@@ -73,7 +73,7 @@ function FieldSection({ title, onSave, inputType = 'text', placeholder, currentV
         <button
           type="submit"
           disabled={loading || !value.trim()}
-          className="px-4 py-2 bg-[#55F] text-white text-sm font-medium rounded-md hover:bg-[#44E] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-[#55F] text-white text-sm font-semibold rounded-lg hover:bg-[#44E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? 'Saving...' : 'Save changes'}
         </button>
@@ -93,7 +93,7 @@ export default function Profile() {
   return (
     <Layout>
       <div className="max-w-lg mx-auto py-10 px-4">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8">Profile</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Profile</h1>
         <div className="space-y-4">
           <FieldSection
             title="Username"

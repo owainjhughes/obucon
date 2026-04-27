@@ -13,6 +13,24 @@ interface DictionaryEntry {
 
 const PAGE_SIZE = 15
 
+const jlptBadge: Record<number, string> = {
+  1: 'bg-blue-700 text-white',
+  2: 'bg-indigo-600 text-white',
+  3: 'bg-purple-600 text-white',
+  4: 'bg-orange-500 text-white',
+  5: 'bg-green-600 text-white',
+}
+
+function JlptBadge({ level }: { level: number | null }) {
+  if (level == null) return <span className="text-gray-400">—</span>
+  const cls = jlptBadge[level] ?? 'bg-gray-500 text-white'
+  return (
+    <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-bold ${cls}`}>
+      N{level}
+    </span>
+  )
+}
+
 export default function Dictionary() {
   const [entries, setEntries] = useState<DictionaryEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -99,7 +117,7 @@ export default function Dictionary() {
                   <col className="w-[17%]" />
                 </colgroup>
                 <thead>
-                  <tr className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-600">
+                  <tr className="border-b-2 border-[#55F] bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     <th className="px-4 py-3">Word</th>
                     <th className="px-4 py-3">Hiragana</th>
                     <th className="px-4 py-3">Meaning</th>
@@ -111,7 +129,7 @@ export default function Dictionary() {
                   {paginated.map((entry, idx) => {
                     const word = entry.kanji || entry.hiragana
                     return (
-                      <tr key={`${entry.kanji}-${entry.hiragana}-${idx}`}>
+                      <tr key={`${entry.kanji}-${entry.hiragana}-${idx}`} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 font-semibold text-gray-900">
                           <div className="truncate" title={word}>{word}</div>
                         </td>
@@ -121,7 +139,7 @@ export default function Dictionary() {
                         <td className="px-4 py-3">
                           <div className="truncate" title={entry.meaning || undefined}>{entry.meaning || "—"}</div>
                         </td>
-                        <td className="px-4 py-3">{entry.jlpt_level != null ? `N${entry.jlpt_level}` : "—"}</td>
+                        <td className="px-4 py-3"><JlptBadge level={entry.jlpt_level} /></td>
                         <td className="px-4 py-3"></td>
                       </tr>
                     )
