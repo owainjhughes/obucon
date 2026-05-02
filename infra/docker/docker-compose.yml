@@ -17,8 +17,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/ec2-user/.docker/config.json:/config.json:ro
+      - /usr/bin/docker-credential-ecr-login:/usr/bin/docker-credential-ecr-login:ro
     environment:
       - WATCHTOWER_POLL_INTERVAL=60
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_INCLUDE_STOPPED=false
+      - AWS_REGION=eu-west-2
+      - PATH=/usr/bin
     command: obucon-backend

@@ -68,3 +68,32 @@ jobs:
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+  deploy-compose:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.inputs.deploy == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EC2_HOST: ${{ vars.EC2_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Sync compose file and apply
+        env:
+          EC2_HOST: ${{ vars.EC2_HOST }}
+        run: |
+          scp -i ~/.ssh/deploy_key \
+            infra/docker/docker-compose.yml \
+            ec2-user@"$EC2_HOST":/home/ec2-user/docker-compose.yml
+          ssh -i ~/.ssh/deploy_key ec2-user@"$EC2_HOST" \
+            'docker compose -f /home/ec2-user/docker-compose.yml up -d'
