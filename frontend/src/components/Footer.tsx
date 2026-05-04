@@ -10,7 +10,7 @@ export default function Footer() {
                         <div className="text-sm font-semibold text-gray-900 tracking-wide">ObuCon</div>
                     </div>
                     <div className="mt-4 flex items-center justify-center gap-4 text-gray-400">
-                        <a href="https://ojhdev.pythonanywhere.com/" className="text-xs hover:text-gray-700 transition-colors">Korean Prototype</a>
+                        <a href="https://saebae.com/" className="text-xs hover:text-gray-700 transition-colors">Korean Prototype</a>
                         <span className="text-gray-200">|</span>
                         <a href="https://www.linkedin.com/in/ohdev" className="text-xs hover:text-gray-700 transition-colors">LinkedIn</a>
                     </div>

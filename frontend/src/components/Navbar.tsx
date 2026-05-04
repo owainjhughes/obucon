@@ -80,8 +80,25 @@ export default function Navbar() {
 								})}
 							</div>
 						</div>
-					</div>
-					<div className="hidden sm:flex items-center sm:ml-6">
+					</div>				
+					{/* Language switcher - desktop */}
+				<div className="hidden sm:flex items-center gap-1.5 ml-3">
+					<span
+						className="rounded overflow-hidden ring-2 ring-[#55F] cursor-default"
+						title="Japanese (current)"
+						aria-label="Japanese"
+					>
+						<img src="/jp-flag.png" alt="JP" className="h-5 w-auto block" />
+					</span>
+					<a
+						href="https://saebae.com/"
+						className="rounded overflow-hidden opacity-50 hover:opacity-100 transition-opacity"
+						title="Korean version"
+						aria-label="Switch to Korean version"
+					>
+						<img src="/flag-kr.webp" alt="KR" className="h-5 w-auto block" />
+					</a>
+				</div>					<div className="hidden sm:flex items-center sm:ml-6">
 						{user ? (
 							<Menu as="div" className="relative ml-3">
 								<MenuButton className="relative flex items-center justify-center rounded-full ring-2 ring-transparent hover:ring-gray-200 transition-all">
@@ -160,8 +177,25 @@ export default function Navbar() {
 								{item.name}
 							</DisclosureButton>
 						)
-					})}
-					<div className="border-t border-gray-200 mt-2 pt-2">
+					})}				
+					{/* Language switcher - mobile */}
+				<div className="flex items-center gap-2 px-3 py-2">
+					<span
+						className="rounded overflow-hidden ring-2 ring-[#55F] cursor-default"
+						title="Japanese (current)"
+						aria-label="Japanese"
+					>
+						<img src="/jp-flag.png" alt="JP" className="h-5 w-auto block" />
+					</span>
+					<a
+						href="https://saebae.com/"
+						className="rounded overflow-hidden opacity-50 hover:opacity-100 transition-opacity"
+						title="Korean version"
+						aria-label="Switch to Korean version"
+					>
+						<img src="/flag-kr.webp" alt="KR" className="h-5 w-auto block" />
+					</a>
+				</div>					<div className="border-t border-gray-200 mt-2 pt-2">
 						{user ? (
 							<>
 								<DisclosureButton
