@@ -27,6 +27,7 @@ type KnownWord struct {
 	Lemma      string    `gorm:"not null;index" json:"lemma"`
 	GradeLevel *int      `gorm:"index" json:"grade_level"`
 	Status     string    `gorm:"default:known" json:"status"`
+	Metadata   []byte    `gorm:"type:jsonb" json:"-"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 

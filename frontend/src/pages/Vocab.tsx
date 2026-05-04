@@ -11,6 +11,7 @@ interface VocabEntry {
   hiragana: string
   grade_level?: number | null
   meaning: string
+  kind?: string
 }
 
 const jlptBadge: Record<number, string> = {
@@ -27,6 +28,14 @@ function JlptBadge({ level }: { level: number | null | undefined }) {
   return (
     <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-bold ${cls}`}>
       N{level}
+    </span>
+  )
+}
+
+function ConjugationBadge() {
+  return (
+    <span className="inline-block rounded bg-sky-600 px-1.5 py-0.5 text-xs font-bold text-white">
+      Conj.
     </span>
   )
 }
@@ -80,7 +89,9 @@ export default function Vocab() {
   }, [])
 
   const filteredVocab = vocab.filter((entry) => {
-    if (jlptFilter !== "all") {
+    if (jlptFilter === "conjugation") {
+      if (entry.kind !== "conjugation") return false
+    } else if (jlptFilter !== "all") {
       const wantedLevel = Number(jlptFilter)
       if (entry.grade_level !== wantedLevel) return false
     }
@@ -180,8 +191,9 @@ export default function Vocab() {
     setExportingAnki(true)
     setAnkiMessage(null)
     try {
+      const exportable = vocab.filter((e) => e.kind !== "conjugation")
       const { added, skipped } = await exportVocabToAnki(
-        vocab.map((e) => ({ lemma: e.lemma, meaning: e.meaning })),
+        exportable.map((e) => ({ lemma: e.lemma, meaning: e.meaning })),
         ankiExportDeck,
       )
       setAnkiMessage({ text: `Exported ${added} card(s) to Anki. ${skipped} duplicate(s) skipped.`, type: "success" })
@@ -259,6 +271,7 @@ export default function Vocab() {
                 <option value="3">JLPT N3</option>
                 <option value="2">JLPT N2</option>
                 <option value="1">JLPT N1</option>
+                <option value="conjugation">Conjugations</option>
               </select>
               <div className="flex items-center gap-2">
                 <select
@@ -338,7 +351,7 @@ export default function Vocab() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        {editingLemma === entry.lemma ? (
+                        {editingLemma === entry.lemma && entry.kind !== "conjugation" ? (
                           <select
                             value={editGradeLevel}
                             onChange={(e) => setEditGradeLevel(e.target.value)}
@@ -350,6 +363,8 @@ export default function Vocab() {
                             <option value="2">N2</option>
                             <option value="1">N1</option>
                           </select>
+                        ) : entry.kind === "conjugation" ? (
+                          <ConjugationBadge />
                         ) : (
                           <JlptBadge level={entry.grade_level} />
                         )}
@@ -376,13 +391,15 @@ export default function Vocab() {
                             </>
                           ) : (
                             <>
-                              <button
-                                type="button"
-                                onClick={() => startEditing(entry)}
-                                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                              >
-                                Edit
-                              </button>
+                              {entry.kind !== "conjugation" && (
+                                <button
+                                  type="button"
+                                  onClick={() => startEditing(entry)}
+                                  className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                >
+                                  Edit
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => removeEntry(entry)}
@@ -467,7 +484,7 @@ export default function Vocab() {
               <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
                 <h3 className="text-sm font-semibold text-gray-800">Export to Anki</h3>
                 <p className="mt-1 text-xs text-gray-500">
-                  Pushes your {vocab.length} known word(s) into an Anki deck as flashcards (Front: word, Back: meaning).
+                  Pushes your {vocab.filter((e) => e.kind !== "conjugation").length} known word(s) into an Anki deck as flashcards (Front: word, Back: meaning).
                 </p>
                 <div className="mt-3 flex flex-col gap-2">
                   <input
@@ -479,7 +496,7 @@ export default function Vocab() {
                   <button
                     type="button"
                     onClick={handleExportToAnki}
-                    disabled={exportingAnki || vocab.length === 0}
+                    disabled={exportingAnki || vocab.filter((e) => e.kind !== "conjugation").length === 0}
                     className="rounded-full border border-[#55F] bg-[#55F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#44E] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {exportingAnki ? "Exporting..." : "Export to Anki"}

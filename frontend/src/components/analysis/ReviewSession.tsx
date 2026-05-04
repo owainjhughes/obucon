@@ -8,6 +8,7 @@ interface Token {
   pos: string
   is_known: boolean
   grade_level?: number | null
+  is_conjugation?: boolean
 }
 
 interface ReviewWord {
@@ -15,6 +16,7 @@ interface ReviewWord {
   hiragana: string
   meaning: string
   jlpt_level: number | null
+  is_conjugation?: boolean
 }
 
 interface ReviewSessionProps {
@@ -45,28 +47,48 @@ export default function ReviewSession({ tokens, language, onClose, onWordMarked 
   const initialTokens = useRef(tokens)
 
   useEffect(() => {
-    const reviewableLemmas = [
+    const unknownTokens = initialTokens.current.filter(
+      (t) => !t.is_known && (t.grade_level != null || t.is_conjugation)
+    )
+
+    const vocabLemmas = [
       ...new Set(
-        initialTokens.current
-          .filter((t) => !t.is_known && t.grade_level != null)
-          .map((t) => t.lemma)
+        unknownTokens.filter((t) => !t.is_conjugation && t.grade_level != null).map((t) => t.lemma)
       ),
     ]
+    const conjugationLemmas = [
+      ...new Set(unknownTokens.filter((t) => t.is_conjugation).map((t) => t.lemma)),
+    ]
 
-    if (reviewableLemmas.length === 0) {
+    if (vocabLemmas.length === 0 && conjugationLemmas.length === 0) {
       setIsLoading(false)
       setDone(true)
+      return
+    }
+
+    const conjugationWords: ReviewWord[] = conjugationLemmas.map((lemma) => ({
+      lemma,
+      hiragana: '',
+      meaning: '',
+      jlpt_level: null,
+      is_conjugation: true,
+    }))
+
+    if (vocabLemmas.length === 0) {
+      setWords(conjugationWords)
+      setIsLoading(false)
       return
     }
 
     const fetchWords = async () => {
       try {
         const params = new URLSearchParams({
-          lemmas: reviewableLemmas.join(','),
+          lemmas: vocabLemmas.join(','),
           language,
         })
         const response = await apiClient.get(`/review/words?${params}`)
-        setWords(response.data.words ?? [])
+        const vocabWords: ReviewWord[] = response.data.words ?? []
+        setWords([...vocabWords, ...conjugationWords])
       } catch (err: unknown) {
         setError(getApiErrorMessage(err, 'Failed to load review words'))
       } finally {
@@ -100,7 +122,12 @@ export default function ReviewSession({ tokens, language, onClose, onWordMarked 
     setMarking(true)
     setError(null)
     try {
-      await apiClient.post('/vocab/known', { lemma: word.lemma, language })
+      const payload: { lemma: string; language: string; kind?: string } = {
+        lemma: word.lemma,
+        language,
+      }
+      if (word.is_conjugation) payload.kind = 'conjugation'
+      await apiClient.post('/vocab/known', payload)
       onWordMarked(word.lemma)
       setMarkedCount((prev) => prev + 1)
     } catch (err: unknown) {
@@ -192,7 +219,11 @@ export default function ReviewSession({ tokens, language, onClose, onWordMarked 
               {currentWord.hiragana && currentWord.hiragana !== currentWord.lemma && (
                 <div className="mb-4 text-xl text-gray-500">{currentWord.hiragana}</div>
               )}
-              {currentWord.jlpt_level != null && (
+              {currentWord.is_conjugation ? (
+                <span className="inline-block rounded-full bg-sky-100 px-3 py-0.5 text-sm font-semibold text-sky-800">
+                  Conjugation
+                </span>
+              ) : currentWord.jlpt_level != null && (
                 <span
                   className={`inline-block rounded-full px-3 py-0.5 text-sm font-semibold ${
                     JLPT_BADGE[currentWord.jlpt_level] ?? 'bg-gray-100 text-gray-700'
@@ -202,7 +233,9 @@ export default function ReviewSession({ tokens, language, onClose, onWordMarked 
                 </span>
               )}
               <div className="mt-5 text-lg text-gray-700">
-                {currentWord.meaning || (
+                {currentWord.is_conjugation ? (
+                  <span className="italic text-gray-400">Verb conjugation morpheme</span>
+                ) : currentWord.meaning || (
                   <span className="italic text-gray-400">No meaning available</span>
                 )}
               </div>

@@ -24,6 +24,7 @@ type AnalyzeRequest struct {
 type addKnownWordRequest struct {
 	Lemma    string `json:"lemma" binding:"required"`
 	Language string `json:"language" binding:"required,len=2"`
+	Kind     string `json:"kind" binding:"omitempty,oneof=conjugation"`
 }
 
 type updateKnownWordRequest struct {
@@ -164,7 +165,7 @@ func (h *AnalysisHandler) AddKnownWord(c *gin.Context) {
 		return
 	}
 
-	result, err := h.analysisService.AddKnownWord(c.Request.Context(), userID, req.Language, req.Lemma)
+	result, err := h.analysisService.AddKnownWord(c.Request.Context(), userID, req.Language, req.Lemma, req.Kind)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

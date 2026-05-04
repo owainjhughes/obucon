@@ -11,6 +11,7 @@ interface Token {
   is_katakana?: boolean
   is_roman?: boolean
   is_non_japanese?: boolean
+  is_conjugation?: boolean
   meaning?: string
 }
 
@@ -39,6 +40,7 @@ function createPieSegments(counts: Record<string, number>) {
     'JLPT N3': '#9333EA',
     'JLPT N4': '#EA580C',
     'JLPT N5': '#16A34A',
+    'Conjugation': '#0EA5E9',
     'Unknown (Native)': '#9CA3AF',
     'Katakana': '#D1D5DB',
   }
@@ -51,10 +53,6 @@ function createPieSegments(counts: Record<string, number>) {
   })
 
   return segments
-}
-
-function isAuxiliary(token: Token) {
-  return token.pos.includes('助動詞') || token.pos.includes('動詞 非自立')
 }
 
 function isNonJapanese(token: { is_non_japanese?: boolean; is_roman?: boolean; pos: string }) {
@@ -71,50 +69,24 @@ interface DisplayToken {
   is_katakana?: boolean
   is_roman?: boolean
   is_non_japanese?: boolean
+  is_conjugation?: boolean
   meaning?: string
 }
 
 function combineTokensForDisplay(tokens: Token[]): DisplayToken[] {
-  const combined: DisplayToken[] = []
-
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i]
-    // If this token is a verb and the next is an auxiliary, combine them for clearer display
-    if (token.pos.includes('動詞') && i + 1 < tokens.length && isAuxiliary(tokens[i + 1])) {
-      const combinedSurface = token.surface + tokens[i + 1].surface
-      const combinedKnown = token.is_known || tokens[i + 1].is_known
-      const gradeLevel = token.grade_level ?? tokens[i + 1].grade_level
-      const isKatakana = token.is_katakana || tokens[i + 1].is_katakana
-      const isRoman = token.is_roman || tokens[i + 1].is_roman
-      combined.push({
-        surface: combinedSurface,
-        lemma: token.lemma,
-        pos: token.pos,
-        is_known: combinedKnown,
-        grade_level: gradeLevel,
-        is_katakana: isKatakana,
-        is_roman: isRoman,
-        is_non_japanese: token.is_non_japanese || tokens[i + 1].is_non_japanese,
-        meaning: token.meaning || tokens[i + 1].meaning,
-      })
-      i += 1
-      continue
-    }
-
-    combined.push({
-      surface: token.surface,
-      lemma: token.lemma,
-      pos: token.pos,
-      is_known: token.is_known,
-      grade_level: token.grade_level,
-      is_katakana: token.is_katakana,
-      is_roman: token.is_roman,
-      is_non_japanese: token.is_non_japanese,
-      meaning: token.meaning,
-    })
-  }
-
-  return combined
+  // Conjugations are first-class items now — render every token as its own pill.
+  return tokens.map((token) => ({
+    surface: token.surface,
+    lemma: token.lemma,
+    pos: token.pos,
+    is_known: token.is_known,
+    grade_level: token.grade_level,
+    is_katakana: token.is_katakana,
+    is_roman: token.is_roman,
+    is_non_japanese: token.is_non_japanese,
+    is_conjugation: token.is_conjugation,
+    meaning: token.meaning,
+  }))
 }
 
 export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOutputProps) {
@@ -133,11 +105,13 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
     setShowReview(false)
   }, [tokens, missing])
 
-  const handleAddKnown = async (lemma: string) => {
+  const handleAddKnown = async (lemma: string, kind?: 'conjugation') => {
     if (addingByLemma[lemma]) return
     setAddingByLemma((prev) => ({ ...prev, [lemma]: true }))
     try {
-      const response = await apiClient.post('/vocab/known', { lemma, language: 'ja' })
+      const payload: { lemma: string; language: string; kind?: string } = { lemma, language: 'ja' }
+      if (kind) payload.kind = kind
+      const response = await apiClient.post('/vocab/known', payload)
       const resolvedGrade = response?.data?.grade_level ?? null
       setLocalTokens((prev) =>
         prev.map((token) =>
@@ -174,7 +148,9 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
   }
 
   const reviewableCount = [...new Set(
-    localTokens.filter((t) => !t.is_known && t.grade_level != null).map((t) => t.lemma)
+    localTokens
+      .filter((t) => !t.is_known && (t.grade_level != null || t.is_conjugation))
+      .map((t) => t.lemma)
   )].length
 
   const meaningByLemma = React.useMemo(() => {
@@ -198,7 +174,9 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
 
   const jlptCounts = pieTokens.reduce<Record<string, number>>((acc, token) => {
     let category: string
-    if (token.grade_level != null) {
+    if (token.is_conjugation) {
+      category = 'Conjugation'
+    } else if (token.grade_level != null) {
       category = `JLPT N${token.grade_level}`
     } else if (token.is_katakana) {
       category = 'Katakana'
@@ -242,6 +220,30 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
 
               if (isNonJapanese(token)) {
                 className += 'text-gray-700'
+                return (
+                  <span key={idx} className={className}>{token.surface}</span>
+                )
+              }
+
+              if (token.is_conjugation) {
+                if (!token.is_known) {
+                  const busy = !!addingByLemma[token.lemma]
+                  return (
+                    <span key={idx} className="group relative inline-block">
+                      <button
+                        type="button"
+                        onClick={() => handleAddKnown(token.lemma, 'conjugation')}
+                        disabled={busy}
+                        className="inline cursor-pointer bg-sky-50 font-medium text-sky-700 border-b border-sky-300 hover:bg-sky-100 disabled:opacity-50"
+                      >
+                        {token.surface}
+                      </button>
+                      <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs font-normal text-white shadow-lg group-hover:block">
+                        {`Conjugation: ${token.lemma}`}
+                      </span>
+                    </span>
+                  )
+                }
                 return (
                   <span key={idx} className={className}>{token.surface}</span>
                 )

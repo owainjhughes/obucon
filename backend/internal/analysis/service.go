@@ -23,6 +23,7 @@ type EnrichedToken struct {
 	IsKatakana    bool   `json:"is_katakana"`
 	IsRoman       bool   `json:"is_roman"`
 	IsNonJapanese bool   `json:"is_non_japanese"`
+	IsConjugation bool   `json:"is_conjugation"`
 	Meaning       string `json:"meaning"`
 }
 
@@ -92,9 +93,13 @@ func (s *Service) AnalyzeText(ctx context.Context, userID uint, language, text s
 			}
 		}
 
-		isGrammarToken := strings.Contains(token.PartOfSpeech, "助詞") ||
-			strings.Contains(token.PartOfSpeech, "助動詞") ||
-			strings.Contains(token.PartOfSpeech, "記号") ||
+		// Particles (助詞) and symbols (記号) stay invisible to scoring — they're auto-known.
+		isAutoKnown := strings.Contains(token.PartOfSpeech, "助詞") ||
+			strings.Contains(token.PartOfSpeech, "記号")
+
+		// Verb conjugation morphemes are first-class trackable items: unknown until the user
+		// marks them as known via /vocab/known with kind="conjugation".
+		isConjugation := strings.Contains(token.PartOfSpeech, "助動詞") ||
 			strings.Contains(token.PartOfSpeech, "動詞 接尾") ||
 			strings.Contains(token.PartOfSpeech, "動詞 非自立")
 
@@ -103,18 +108,9 @@ func (s *Service) AnalyzeText(ctx context.Context, userID uint, language, text s
 			baseLemma = before
 		}
 
-		// For conjugated verbs, also allow matching against the dictionary root (e.g. 知る)
-		rootLemma := baseLemma
-		// Prefer stripping longer suffixes first to avoid over-stripping (e.g. られる -> る)
-		if strings.HasSuffix(rootLemma, "られる") {
-			rootLemma = strings.TrimSuffix(rootLemma, "られる")
-		} else if strings.HasSuffix(rootLemma, "れる") {
-			rootLemma = strings.TrimSuffix(rootLemma, "れる")
-		}
+		isKnown := isAutoKnown || knownLemmas[token.Lemma] || knownLemmas[token.Surface] || knownLemmas[baseLemma]
 
-		isKnown := isGrammarToken || knownLemmas[token.Lemma] || knownLemmas[token.Surface] || knownLemmas[baseLemma] || knownLemmas[rootLemma]
-
-		if !isKnown && !token.IsNonJapanese {
+		if !isKnown && !token.IsNonJapanese && !isConjugation {
 			_, hasGrade := gradeLevels[token.Lemma]
 			_, hasGradeBase := gradeLevels[baseLemma]
 			if !hasGrade && !hasGradeBase {
@@ -139,6 +135,7 @@ func (s *Service) AnalyzeText(ctx context.Context, userID uint, language, text s
 			IsKatakana:    token.IsKatakana,
 			IsRoman:       token.IsRoman,
 			IsNonJapanese: token.IsNonJapanese,
+			IsConjugation: isConjugation,
 			Meaning:       meaning,
 		})
 	}
@@ -158,7 +155,7 @@ func (s *Service) AddBulkKnownVocabulary(ctx context.Context, userID uint, langu
 	return s.repo.BulkAddKnownWordsByJLPT(ctx, userID, language, jlptLevel)
 }
 
-func (s *Service) AddKnownWord(ctx context.Context, userID uint, language, lemma string) (*AddKnownWordResult, error) {
+func (s *Service) AddKnownWord(ctx context.Context, userID uint, language, lemma, kind string) (*AddKnownWordResult, error) {
 	cleanLemma := strings.TrimSpace(lemma)
 	if cleanLemma == "" {
 		return nil, fmt.Errorf("lemma cannot be empty")
@@ -169,6 +166,9 @@ func (s *Service) AddKnownWord(ctx context.Context, userID uint, language, lemma
 		Language: language,
 		Lemma:    cleanLemma,
 		Status:   "known",
+	}
+	if kind == "conjugation" {
+		word.Metadata = []byte(`{"kind":"conjugation"}`)
 	}
 
 	if err := s.repo.UpsertKnownWord(ctx, word); err != nil {

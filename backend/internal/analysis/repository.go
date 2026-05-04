@@ -1,6 +1,7 @@
 package analysis
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"obucon/internal/models"
@@ -31,6 +32,11 @@ func (r *Repository) UpsertKnownWord(ctx context.Context, knownWord *models.Know
 
 func (r *Repository) populateKnownWordGradeLevel(ctx context.Context, knownWord *models.KnownWord) error {
 	if knownWord == nil || knownWord.GradeLevel != nil || knownWord.Lemma == "" {
+		return nil
+	}
+
+	// Conjugations live outside the JLPT scheme.
+	if bytes.Contains(knownWord.Metadata, []byte(`"kind":"conjugation"`)) {
 		return nil
 	}
 
@@ -168,6 +174,7 @@ type VocabEntry struct {
 	Hiragana   string `json:"hiragana"`
 	GradeLevel *int   `json:"grade_level"`
 	Meaning    string `json:"meaning"`
+	Kind       string `json:"kind"`
 }
 
 func (r *Repository) ListKnownWordsWithMeaning(ctx context.Context, userID uint, language string) ([]VocabEntry, error) {
@@ -177,7 +184,7 @@ func (r *Repository) ListKnownWordsWithMeaning(ctx context.Context, userID uint,
 	case "ja":
 		err := r.db.WithContext(ctx).
 			Table("known_words").
-			Select("known_words.lemma, coalesce(japanese_dictionary.hiragana, '') AS hiragana, known_words.grade_level, coalesce(nullif(known_words.metadata->>'meaning', ''), japanese_dictionary.meaning, '') AS meaning").
+			Select("known_words.lemma, coalesce(japanese_dictionary.hiragana, '') AS hiragana, known_words.grade_level, coalesce(nullif(known_words.metadata->>'meaning', ''), japanese_dictionary.meaning, '') AS meaning, coalesce(known_words.metadata->>'kind', '') AS kind").
 			Joins("LEFT JOIN japanese_dictionary ON known_words.lemma = japanese_dictionary.kanji OR known_words.lemma = japanese_dictionary.hiragana").
 			Where("known_words.user_id = ? AND known_words.language = ?", userID, language).
 			Order("known_words.created_at desc").
