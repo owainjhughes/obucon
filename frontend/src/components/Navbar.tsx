@@ -7,8 +7,7 @@ const navigation = [
 	{ name: "Home", href: "/" },
 	{ name: "Analysis", href: "/analysis" },
 	{ name: "Vocabulary", href: "/vocabulary" },
-	{ name: "Dictionary", href: "/dictionary" },
-	{ name: "jWiki", href: "https://ja.wikipedia.org/wiki/%E3%83%A1%E3%82%A4%E3%83%B3%E3%83%9A%E3%83%BC%E3%82%B8", external: true }
+	{ name: "Dictionary", href: "/dictionary" }
 ]
 
 function classNames(...classes: string[]) {
@@ -46,22 +45,9 @@ export default function Navbar() {
 						<div className="hidden sm:ml-6 sm:flex sm:items-stretch">
 							<div className="flex items-stretch gap-1">
 								{navigation.map((item) => {
-								const isCurrent = !item.external && (item.href === "/"
-									? location.pathname === item.href
-									: location.pathname.startsWith(item.href))
-								if (item.external) {
-									return (
-										<a
-											key={item.name}
-											href={item.href}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="inline-flex items-center px-3 text-sm font-medium text-gray-500 hover:text-gray-900 border-b-2 border-transparent transition-colors"
-										>
-											{item.name}
-										</a>
-									)
-								}
+									const isCurrent = item.href === "/"
+										? location.pathname === item.href
+										: location.pathname.startsWith(item.href)
 									return (
 										<Link
 											key={item.name}
@@ -81,7 +67,6 @@ export default function Navbar() {
 							</div>
 						</div>
 					</div>				
-					{/* Language switcher - desktop */}
 				<div className="hidden sm:flex items-center gap-1.5 ml-3">
 					<span
 						className="rounded overflow-hidden ring-2 ring-[#55F] cursor-default"
@@ -145,22 +130,9 @@ export default function Navbar() {
 			<DisclosurePanel className="sm:hidden border-t border-gray-100">
 				<div className="space-y-0.5 px-4 pb-3 pt-2">
 					{navigation.map((item) => {
-						const isCurrent = !item.external && (item.href === "/"
+						const isCurrent = item.href === "/"
 							? location.pathname === item.href
-							: location.pathname.startsWith(item.href))
-						if (item.external) {
-							return (
-								<a
-									key={item.name}
-									href={item.href}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="block rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-								>
-									{item.name}
-								</a>
-							)
-						}
+							: location.pathname.startsWith(item.href)
 						return (
 							<DisclosureButton
 								key={item.name}
