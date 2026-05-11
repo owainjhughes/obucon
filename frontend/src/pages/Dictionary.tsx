@@ -12,6 +12,14 @@ interface DictionaryEntry {
   jlpt_level: number | null
 }
 
+interface VocabEntry {
+  lemma: string
+  hiragana: string
+  grade_level?: number | null
+  meaning: string
+  kind?: string
+}
+
 const PAGE_SIZE = 15
 
 const jlptBadge: Record<number, string> = {
@@ -34,30 +42,77 @@ function JlptBadge({ level }: { level: number | null }) {
 
 export default function Dictionary() {
   const cached = getCached<DictionaryEntry[]>("dictionary")
+  const cachedVocab = getCached<VocabEntry[]>("vocab")
   const [entries, setEntries] = useState<DictionaryEntry[]>(cached ?? [])
   const [isLoading, setIsLoading] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [jlptFilter, setJlptFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
+  const [knownLemmas, setKnownLemmas] = useState<Set<string>>(
+    () => new Set((cachedVocab ?? []).map((v) => v.lemma))
+  )
+  const [addingByLemma, setAddingByLemma] = useState<Record<string, boolean>>({})
+  const [addError, setAddError] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
       if (!getCached("dictionary")) setIsLoading(true)
       setError(null)
       try {
-        const response = await apiClient.get("/dictionary", { params: { language: "ja" } })
-        const data: DictionaryEntry[] = response.data.entries || []
-        setCached("dictionary", data)
-        setEntries(data)
-      } catch (err: unknown) {
-        setError(getApiErrorMessage(err, "Failed to load dictionary"))
+        const [dictRes, vocabRes] = await Promise.allSettled([
+          apiClient.get("/dictionary", { params: { language: "ja" } }),
+          apiClient.get("/vocab"),
+        ])
+        if (dictRes.status === "fulfilled") {
+          const data: DictionaryEntry[] = dictRes.value.data.entries || []
+          setCached("dictionary", data)
+          setEntries(data)
+        } else {
+          setError(getApiErrorMessage(dictRes.reason, "Failed to load dictionary"))
+        }
+        if (vocabRes.status === "fulfilled") {
+          const vocab: VocabEntry[] = vocabRes.value.data.vocab || []
+          setCached("vocab", vocab)
+          setKnownLemmas(new Set(vocab.map((v) => v.lemma)))
+        }
       } finally {
         setIsLoading(false)
       }
     }
     load()
   }, [])
+
+  const handleAddKnown = async (lemma: string) => {
+    if (!lemma || addingByLemma[lemma] || knownLemmas.has(lemma)) return
+    setAddError(null)
+    setAddingByLemma((prev) => ({ ...prev, [lemma]: true }))
+    try {
+      const response = await apiClient.post("/vocab/known", { lemma, language: "ja" })
+      setKnownLemmas((prev) => {
+        const next = new Set(prev)
+        next.add(lemma)
+        return next
+      })
+      const existing = getCached<VocabEntry[]>("vocab") ?? []
+      if (!existing.some((v) => v.lemma === lemma)) {
+        const matchingDictEntry = entries.find(
+          (e) => (e.kanji || e.hiragana) === lemma
+        )
+        const newEntry: VocabEntry = {
+          lemma,
+          hiragana: matchingDictEntry?.hiragana ?? "",
+          grade_level: response?.data?.grade_level ?? matchingDictEntry?.jlpt_level ?? null,
+          meaning: matchingDictEntry?.meaning ?? "",
+        }
+        setCached("vocab", [...existing, newEntry])
+      }
+    } catch (err: unknown) {
+      setAddError(getApiErrorMessage(err, "Failed to add word to known list"))
+    } finally {
+      setAddingByLemma((prev) => ({ ...prev, [lemma]: false }))
+    }
+  }
 
   const filteredEntries = entries.filter((entry) => {
     if (jlptFilter !== "all") {
@@ -110,6 +165,11 @@ export default function Dictionary() {
             </div>
           ) : (
             <div className="mt-6 overflow-x-auto">
+              {addError && (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {addError}
+                </div>
+              )}
               <table className="w-full min-w-[600px] table-fixed border-collapse">
                 <colgroup>
                   <col className="w-[18%]" />
@@ -142,7 +202,22 @@ export default function Dictionary() {
                           <div className="truncate" title={entry.meaning || undefined}>{entry.meaning || "—"}</div>
                         </td>
                         <td className="px-4 py-3"><JlptBadge level={entry.jlpt_level} /></td>
-                        <td className="px-4 py-3"></td>
+                        <td className="px-4 py-3">
+                          {knownLemmas.has(word) ? (
+                            <span className="inline-block rounded bg-green-600 px-1.5 py-0.5 text-xs font-bold text-white">
+                              ✓ Known
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleAddKnown(word)}
+                              disabled={!!addingByLemma[word]}
+                              className="rounded-full bg-[#55F] px-3 py-1 text-xs font-medium text-white hover:bg-[#44E] disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                            >
+                              {addingByLemma[word] ? "Adding…" : "Add"}
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     )
                   })}
