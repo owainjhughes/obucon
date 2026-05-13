@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"obucon/internal/lang/ja"
 	"obucon/internal/models"
@@ -155,7 +156,7 @@ func (s *Service) AddBulkKnownVocabulary(ctx context.Context, userID uint, langu
 	return s.repo.BulkAddKnownWordsByJLPT(ctx, userID, language, jlptLevel)
 }
 
-func (s *Service) AddKnownWord(ctx context.Context, userID uint, language, lemma, kind string) (*AddKnownWordResult, error) {
+func (s *Service) AddKnownWord(ctx context.Context, userID uint, language, lemma, kind string, meaning *string, jlptLevel *int) (*AddKnownWordResult, error) {
 	cleanLemma := strings.TrimSpace(lemma)
 	if cleanLemma == "" {
 		return nil, fmt.Errorf("lemma cannot be empty")
@@ -167,8 +168,27 @@ func (s *Service) AddKnownWord(ctx context.Context, userID uint, language, lemma
 		Lemma:    cleanLemma,
 		Status:   "known",
 	}
+
+	meta := map[string]string{}
 	if kind == "conjugation" {
-		word.Metadata = []byte(`{"kind":"conjugation"}`)
+		meta["kind"] = "conjugation"
+	}
+	if meaning != nil {
+		if trimmed := strings.TrimSpace(*meaning); trimmed != "" {
+			meta["meaning"] = trimmed
+		}
+	}
+	if len(meta) > 0 {
+		b, err := json.Marshal(meta)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode metadata: %w", err)
+		}
+		word.Metadata = b
+	}
+
+	if jlptLevel != nil {
+		level := *jlptLevel
+		word.GradeLevel = &level
 	}
 
 	if err := s.repo.UpsertKnownWord(ctx, word); err != nil {

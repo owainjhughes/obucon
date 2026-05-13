@@ -22,9 +22,11 @@ type AnalyzeRequest struct {
 }
 
 type addKnownWordRequest struct {
-	Lemma    string `json:"lemma" binding:"required"`
-	Language string `json:"language" binding:"required,len=2"`
-	Kind     string `json:"kind" binding:"omitempty,oneof=conjugation"`
+	Lemma     string  `json:"lemma" binding:"required"`
+	Language  string  `json:"language" binding:"required,len=2"`
+	Kind      string  `json:"kind" binding:"omitempty,oneof=conjugation"`
+	Meaning   *string `json:"meaning,omitempty"`
+	JLPTLevel *int    `json:"jlpt_level,omitempty" binding:"omitempty,min=1,max=5"`
 }
 
 type updateKnownWordRequest struct {
@@ -165,7 +167,7 @@ func (h *AnalysisHandler) AddKnownWord(c *gin.Context) {
 		return
 	}
 
-	result, err := h.analysisService.AddKnownWord(c.Request.Context(), userID, req.Language, req.Lemma, req.Kind)
+	result, err := h.analysisService.AddKnownWord(c.Request.Context(), userID, req.Language, req.Lemma, req.Kind, req.Meaning, req.JLPTLevel)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

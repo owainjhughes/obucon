@@ -96,6 +96,9 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
   const [addError, setAddError] = useState('')
   const [addingAll, setAddingAll] = useState(false)
   const [showReview, setShowReview] = useState(false)
+  const [modalToken, setModalToken] = useState<{ lemma: string; surface: string } | null>(null)
+  const [modalMeaning, setModalMeaning] = useState('')
+  const [modalGrade, setModalGrade] = useState<'' | '1' | '2' | '3' | '4' | '5'>('')
 
   useEffect(() => {
     setLocalTokens(tokens)
@@ -103,14 +106,26 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
     setAddingByLemma({})
     setAddError('')
     setShowReview(false)
+    setModalToken(null)
   }, [tokens, missing])
 
-  const handleAddKnown = async (lemma: string, kind?: 'conjugation') => {
+  const handleAddKnown = async (
+    lemma: string,
+    opts?: { kind?: 'conjugation'; meaning?: string; jlptLevel?: number },
+  ) => {
     if (addingByLemma[lemma]) return
     setAddingByLemma((prev) => ({ ...prev, [lemma]: true }))
     try {
-      const payload: { lemma: string; language: string; kind?: string } = { lemma, language: 'ja' }
-      if (kind) payload.kind = kind
+      const payload: {
+        lemma: string
+        language: string
+        kind?: string
+        meaning?: string
+        jlpt_level?: number
+      } = { lemma, language: 'ja' }
+      if (opts?.kind) payload.kind = opts.kind
+      if (opts?.meaning && opts.meaning.trim()) payload.meaning = opts.meaning.trim()
+      if (opts?.jlptLevel) payload.jlpt_level = opts.jlptLevel
       const response = await apiClient.post('/vocab/known', payload)
       const resolvedGrade = response?.data?.grade_level ?? null
       setLocalTokens((prev) =>
@@ -125,6 +140,33 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
       setAddError(err?.response?.data?.error || 'Failed to add word to known list')
     } finally {
       setAddingByLemma((prev) => ({ ...prev, [lemma]: false }))
+    }
+  }
+
+  const openAddModal = (token: DisplayToken) => {
+    setModalToken({ lemma: token.lemma, surface: token.surface })
+    setModalMeaning('')
+    setModalGrade('')
+  }
+
+  const closeAddModal = () => setModalToken(null)
+
+  const submitAddModal = async () => {
+    if (!modalToken) return
+    await handleAddKnown(modalToken.lemma, {
+      meaning: modalMeaning,
+      jlptLevel: modalGrade ? Number(modalGrade) : undefined,
+    })
+    closeAddModal()
+  }
+
+  const handleInlineWordClick = (token: DisplayToken) => {
+    const hasMeaning = !!token.meaning && token.meaning.trim().length > 0
+    const hasGrade = token.grade_level != null
+    if (hasMeaning && hasGrade) {
+      handleAddKnown(token.lemma)
+    } else {
+      openAddModal(token)
     }
   }
 
@@ -232,7 +274,7 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
                     <span key={idx} className="group relative inline-block">
                       <button
                         type="button"
-                        onClick={() => handleAddKnown(token.lemma, 'conjugation')}
+                        onClick={() => handleAddKnown(token.lemma, { kind: 'conjugation' })}
                         disabled={busy}
                         className="inline cursor-pointer bg-sky-50 font-medium text-sky-700 border-b border-sky-300 hover:bg-sky-100 disabled:opacity-50"
                       >
@@ -249,15 +291,31 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
                 )
               }
 
-              if (token.is_katakana) {
-                if (!token.is_known) className += 'bg-rose-50 text-rose-700 border-b border-rose-300'
-              } else {
-                if (!token.is_known) className += 'bg-rose-100 text-rose-800'
+              if (token.is_known) {
+                return (
+                  <span key={idx} className="group relative inline-block">
+                    <span className={className}>{token.surface}</span>
+                    <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs font-normal text-white shadow-lg group-hover:block">
+                      {token.meaning?.trim() || 'unknown meaning'}
+                    </span>
+                  </span>
+                )
               }
 
+              const busy = !!addingByLemma[token.lemma]
+              const btnClass = token.is_katakana
+                ? 'inline cursor-pointer bg-rose-50 font-medium text-rose-700 border-b border-rose-300 hover:bg-rose-100 disabled:opacity-50'
+                : 'inline cursor-pointer bg-rose-100 font-medium text-rose-800 hover:bg-rose-200 disabled:opacity-50'
               return (
                 <span key={idx} className="group relative inline-block">
-                  <span className={className}>{token.surface}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleInlineWordClick(token)}
+                    disabled={busy}
+                    className={btnClass}
+                  >
+                    {token.surface}
+                  </button>
                   <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs font-normal text-white shadow-lg group-hover:block">
                     {token.meaning?.trim() || 'unknown meaning'}
                   </span>
@@ -395,6 +453,76 @@ export default function AnalysisOutput({ tokens, missing, onReset }: AnalysisOut
           onClose={() => setShowReview(false)}
           onWordMarked={handleWordMarked}
         />
+      )}
+      {modalToken && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={closeAddModal}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeAddModal}
+              aria-label="Close"
+              className="absolute right-4 top-4 rounded p-1 text-gray-400 hover:text-gray-700"
+            >
+              ✕
+            </button>
+            <h2 className="text-lg font-semibold text-gray-900">Add to known words</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              <span className="font-medium text-gray-800">{modalToken.surface}</span>
+              {modalToken.lemma !== modalToken.surface && (
+                <span className="text-gray-500"> ({modalToken.lemma})</span>
+              )}
+            </p>
+            <div className="mt-4 flex flex-col gap-3">
+              <label className="text-sm font-medium text-gray-700">
+                Meaning <span className="text-xs font-normal text-gray-400">(optional)</span>
+                <input
+                  value={modalMeaning}
+                  onChange={(e) => setModalMeaning(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#55F] focus:outline-none"
+                  placeholder="English meaning"
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                JLPT level <span className="text-xs font-normal text-gray-400">(optional)</span>
+                <select
+                  value={modalGrade}
+                  onChange={(e) => setModalGrade(e.target.value as typeof modalGrade)}
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#55F] focus:outline-none"
+                >
+                  <option value="">Not specified</option>
+                  <option value="5">N5</option>
+                  <option value="4">N4</option>
+                  <option value="3">N3</option>
+                  <option value="2">N2</option>
+                  <option value="1">N1</option>
+                </select>
+              </label>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeAddModal}
+                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitAddModal}
+                disabled={!!addingByLemma[modalToken.lemma]}
+                className="rounded-full border border-[#55F] bg-[#55F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#44E] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {addingByLemma[modalToken.lemma] ? 'Adding...' : 'Add'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   )
