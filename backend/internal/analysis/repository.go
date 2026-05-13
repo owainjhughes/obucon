@@ -182,13 +182,28 @@ func (r *Repository) ListKnownWordsWithMeaning(ctx context.Context, userID uint,
 
 	switch language {
 	case "ja":
-		err := r.db.WithContext(ctx).
-			Table("known_words").
-			Select("known_words.lemma, coalesce(japanese_dictionary.hiragana, '') AS hiragana, known_words.grade_level, coalesce(nullif(known_words.metadata->>'meaning', ''), japanese_dictionary.meaning, '') AS meaning, coalesce(known_words.metadata->>'kind', '') AS kind").
-			Joins("LEFT JOIN japanese_dictionary ON known_words.lemma = japanese_dictionary.kanji OR known_words.lemma = japanese_dictionary.hiragana").
-			Where("known_words.user_id = ? AND known_words.language = ?", userID, language).
-			Order("known_words.created_at desc").
-			Scan(&entries).Error
+		err := r.db.WithContext(ctx).Raw(`
+			SELECT lemma, hiragana, grade_level, meaning, kind
+			FROM (
+			  SELECT DISTINCT ON (kw.id)
+			    kw.lemma                                                      AS lemma,
+			    COALESCE(jd.hiragana, '')                                     AS hiragana,
+			    kw.grade_level                                                AS grade_level,
+			    COALESCE(NULLIF(kw.metadata->>'meaning', ''), jd.meaning, '') AS meaning,
+			    COALESCE(kw.metadata->>'kind', '')                            AS kind,
+			    kw.created_at                                                 AS created_at
+			  FROM known_words kw
+			  LEFT JOIN japanese_dictionary jd
+			    ON kw.lemma = jd.kanji OR kw.lemma = jd.hiragana
+			  WHERE kw.user_id = ? AND kw.language = ?
+			  ORDER BY
+			    kw.id,
+			    CASE WHEN jd.kanji = kw.lemma THEN 0 ELSE 1 END,
+			    CASE WHEN kw.grade_level IS NOT NULL AND jd.jlpt_level = kw.grade_level THEN 0 ELSE 1 END,
+			    jd.id NULLS LAST
+			) t
+			ORDER BY created_at DESC
+		`, userID, language).Scan(&entries).Error
 		if err != nil {
 			return nil, err
 		}

@@ -74,7 +74,9 @@ export default function Vocab() {
 
     try {
       const response = await apiClient.get("/vocab")
-      const data: VocabEntry[] = response.data.vocab || []
+      const raw: VocabEntry[] = response.data.vocab || []
+      const seen = new Set<string>()
+      const data = raw.filter((e) => (seen.has(e.lemma) ? false : (seen.add(e.lemma), true)))
       setCached("vocab", data)
       setVocab(data)
     } catch (err: unknown) {
