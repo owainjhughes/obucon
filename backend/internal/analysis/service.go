@@ -156,7 +156,7 @@ func (s *Service) AddBulkKnownVocabulary(ctx context.Context, userID uint, langu
 	return s.repo.BulkAddKnownWordsByJLPT(ctx, userID, language, jlptLevel)
 }
 
-func (s *Service) AddKnownWord(ctx context.Context, userID uint, language, lemma, kind string, meaning *string, jlptLevel *int) (*AddKnownWordResult, error) {
+func (s *Service) AddKnownWord(ctx context.Context, userID uint, language, lemma, kind string, meaning *string, hiragana *string, jlptLevel *int) (*AddKnownWordResult, error) {
 	cleanLemma := strings.TrimSpace(lemma)
 	if cleanLemma == "" {
 		return nil, fmt.Errorf("lemma cannot be empty")
@@ -176,6 +176,11 @@ func (s *Service) AddKnownWord(ctx context.Context, userID uint, language, lemma
 	if meaning != nil {
 		if trimmed := strings.TrimSpace(*meaning); trimmed != "" {
 			meta["meaning"] = trimmed
+		}
+	}
+	if hiragana != nil {
+		if trimmed := strings.TrimSpace(*hiragana); trimmed != "" {
+			meta["hiragana"] = trimmed
 		}
 	}
 	if len(meta) > 0 {

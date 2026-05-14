@@ -186,12 +186,12 @@ func (r *Repository) ListKnownWordsWithMeaning(ctx context.Context, userID uint,
 			SELECT lemma, hiragana, grade_level, meaning, kind
 			FROM (
 			  SELECT DISTINCT ON (kw.id)
-			    kw.lemma                                                      AS lemma,
-			    COALESCE(jd.hiragana, '')                                     AS hiragana,
-			    kw.grade_level                                                AS grade_level,
-			    COALESCE(NULLIF(kw.metadata->>'meaning', ''), jd.meaning, '') AS meaning,
-			    COALESCE(kw.metadata->>'kind', '')                            AS kind,
-			    kw.created_at                                                 AS created_at
+			    kw.lemma                                                       AS lemma,
+			    COALESCE(NULLIF(kw.metadata->>'hiragana', ''), jd.hiragana, '') AS hiragana,
+			    kw.grade_level                                                 AS grade_level,
+			    COALESCE(NULLIF(kw.metadata->>'meaning', ''), jd.meaning, '')  AS meaning,
+			    COALESCE(kw.metadata->>'kind', '')                             AS kind,
+			    kw.created_at                                                  AS created_at
 			  FROM known_words kw
 			  LEFT JOIN japanese_dictionary jd
 			    ON kw.lemma = jd.kanji OR kw.lemma = jd.hiragana

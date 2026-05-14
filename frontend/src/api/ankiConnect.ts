@@ -42,8 +42,42 @@ interface AnkiNoteInfo {
   tags: string[]
 }
 
+function stripHtml(value: string): string {
+  return value.replace(/<[^>]*>/g, "").trim()
+}
+
+export interface AnkiDeckPreview {
+  fields: string[]
+  sample: Record<string, string>
+  noteCount: number
+}
+
 export async function getAnkiDeckNames(): Promise<string[]> {
   return invoke<string[]>("deckNames")
+}
+
+const MATURE_QUERY = (deckName: string) => `deck:"${deckName}" "prop:ivl>=21"`
+
+export async function previewAnkiDeck(deckName: string): Promise<AnkiDeckPreview> {
+  const noteIds = await invoke<number[]>("findNotes", { query: MATURE_QUERY(deckName) })
+  if (noteIds.length === 0) {
+    return { fields: [], sample: {}, noteCount: 0 }
+  }
+
+  const notes = await invoke<AnkiNoteInfo[]>("notesInfo", { notes: [noteIds[0]] })
+  const first = notes[0]
+  if (!first) {
+    return { fields: [], sample: {}, noteCount: noteIds.length }
+  }
+
+  const sortedEntries = Object.entries(first.fields).sort((a, b) => a[1].order - b[1].order)
+  const fields = sortedEntries.map(([name]) => name)
+  const sample: Record<string, string> = {}
+  for (const [name, info] of sortedEntries) {
+    sample[name] = stripHtml(info.value)
+  }
+
+  return { fields, sample, noteCount: noteIds.length }
 }
 
 export async function exportVocabToAnki(
@@ -71,8 +105,11 @@ export async function exportVocabToAnki(
 
 export async function importVocabFromAnki(
   deckName: string,
-): Promise<Array<{ lemma: string; meaning: string }>> {
-  const noteIds = await invoke<number[]>("findNotes", { query: `deck:"${deckName}"` })
+  lemmaField: string,
+  meaningField: string,
+  hiraganaField?: string,
+): Promise<Array<{ lemma: string; meaning: string; hiragana: string }>> {
+  const noteIds = await invoke<number[]>("findNotes", { query: MATURE_QUERY(deckName) })
   if (noteIds.length === 0) {
     return []
   }
@@ -81,10 +118,14 @@ export async function importVocabFromAnki(
 
   return notes
     .map((note) => {
-      const sorted = Object.entries(note.fields).sort((a, b) => a[1].order - b[1].order)
-      const lemma = (sorted[0]?.[1].value ?? "").replace(/<[^>]*>/g, "").trim()
-      const meaning = (sorted[1]?.[1].value ?? "").replace(/<[^>]*>/g, "").trim()
-      return { lemma, meaning }
+      const lemmaRaw = note.fields[lemmaField]?.value ?? ""
+      const meaningRaw = note.fields[meaningField]?.value ?? ""
+      const hiraganaRaw = hiraganaField ? note.fields[hiraganaField]?.value ?? "" : ""
+      return {
+        lemma: stripHtml(lemmaRaw),
+        meaning: stripHtml(meaningRaw),
+        hiragana: stripHtml(hiraganaRaw),
+      }
     })
     .filter((e) => e.lemma !== "")
 }

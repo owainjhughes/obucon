@@ -26,6 +26,7 @@ type addKnownWordRequest struct {
 	Language  string  `json:"language" binding:"required,len=2"`
 	Kind      string  `json:"kind" binding:"omitempty,oneof=conjugation"`
 	Meaning   *string `json:"meaning,omitempty"`
+	Hiragana  *string `json:"hiragana,omitempty"`
 	JLPTLevel *int    `json:"jlpt_level,omitempty" binding:"omitempty,min=1,max=5"`
 }
 
@@ -167,7 +168,7 @@ func (h *AnalysisHandler) AddKnownWord(c *gin.Context) {
 		return
 	}
 
-	result, err := h.analysisService.AddKnownWord(c.Request.Context(), userID, req.Language, req.Lemma, req.Kind, req.Meaning, req.JLPTLevel)
+	result, err := h.analysisService.AddKnownWord(c.Request.Context(), userID, req.Language, req.Lemma, req.Kind, req.Meaning, req.Hiragana, req.JLPTLevel)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

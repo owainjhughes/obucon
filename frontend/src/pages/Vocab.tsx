@@ -3,7 +3,13 @@ import Layout from "../components/Layout"
 import Pagination from "../components/Pagination"
 import { apiClient } from "../api/client"
 import { getApiErrorMessage } from "../api/errors"
-import { getAnkiDeckNames, exportVocabToAnki, importVocabFromAnki } from "../api/ankiConnect"
+import {
+  getAnkiDeckNames,
+  exportVocabToAnki,
+  importVocabFromAnki,
+  previewAnkiDeck,
+  type AnkiDeckPreview,
+} from "../api/ankiConnect"
 import { getCached, setCached } from "../api/cache"
 
 interface VocabEntry {
@@ -67,6 +73,11 @@ export default function Vocab() {
   const [importingAnki, setImportingAnki] = useState(false)
   const [loadingAnkiDecks, setLoadingAnkiDecks] = useState(false)
   const [ankiMessage, setAnkiMessage] = useState<{ text: string; type: "success" | "error" } | null>(null)
+  const [ankiPreview, setAnkiPreview] = useState<AnkiDeckPreview | null>(null)
+  const [ankiLemmaField, setAnkiLemmaField] = useState("")
+  const [ankiMeaningField, setAnkiMeaningField] = useState("")
+  const [ankiHiraganaField, setAnkiHiraganaField] = useState("")
+  const [loadingAnkiPreview, setLoadingAnkiPreview] = useState(false)
 
   const loadVocab = async () => {
     if (!getCached("vocab")) setIsLoading(true)
@@ -212,7 +223,10 @@ export default function Vocab() {
     try {
       const decks = await getAnkiDeckNames()
       setAnkiDecks(decks)
-      if (decks.length > 0) setSelectedAnkiDeck(decks[0])
+      if (decks.length > 0) {
+        setSelectedAnkiDeck(decks[0])
+        resetAnkiFieldSelection()
+      }
     } catch (err: unknown) {
       setAnkiMessage({ text: err instanceof Error ? err.message : "Could not load Anki decks", type: "error" })
     } finally {
@@ -220,20 +234,69 @@ export default function Vocab() {
     }
   }
 
-  const handleImportFromAnki = async () => {
+  const resetAnkiFieldSelection = () => {
+    setAnkiPreview(null)
+    setAnkiLemmaField("")
+    setAnkiMeaningField("")
+    setAnkiHiraganaField("")
+  }
+
+  const handleSelectAnkiDeck = (deck: string) => {
+    setSelectedAnkiDeck(deck)
+    resetAnkiFieldSelection()
+  }
+
+  const handleLoadAnkiFields = async () => {
     if (!selectedAnkiDeck) return
+    setLoadingAnkiPreview(true)
+    setAnkiMessage(null)
+    try {
+      const preview = await previewAnkiDeck(selectedAnkiDeck)
+      setAnkiPreview(preview)
+      if (preview.fields.length > 0) {
+        setAnkiLemmaField(preview.fields[0])
+        setAnkiMeaningField(preview.fields[1] ?? "")
+      }
+    } catch (err: unknown) {
+      setAnkiMessage({ text: err instanceof Error ? err.message : "Could not load deck fields", type: "error" })
+    } finally {
+      setLoadingAnkiPreview(false)
+    }
+  }
+
+  const handleImportFromAnki = async () => {
+    if (!selectedAnkiDeck || !ankiLemmaField || !ankiMeaningField) return
     setImportingAnki(true)
     setAnkiMessage(null)
     try {
-      const entries = await importVocabFromAnki(selectedAnkiDeck)
+      const entries = await importVocabFromAnki(
+        selectedAnkiDeck,
+        ankiLemmaField,
+        ankiMeaningField,
+        ankiHiraganaField || undefined,
+      )
+      const knownLemmas = new Set(vocab.map((v) => v.lemma))
+      const newEntries = entries.filter((e) => !knownLemmas.has(e.lemma))
+      const skippedAlreadyKnown = entries.length - newEntries.length
+
       const results = await Promise.allSettled(
-        entries.map((e) => apiClient.post("/vocab/known", { lemma: e.lemma, language: "ja" })),
+        newEntries.map((e) =>
+          apiClient.post("/vocab/known", {
+            lemma: e.lemma,
+            language: "ja",
+            meaning: e.meaning || undefined,
+            hiragana: e.hiragana || undefined,
+          }),
+        ),
       )
       const added = results.filter((r) => r.status === "fulfilled").length
       const failed = results.filter((r) => r.status === "rejected").length
       await loadVocab()
       setAnkiMessage({
-        text: `Imported ${added} word(s) from Anki.${failed > 0 ? ` ${failed} failed (may already exist).` : ""}`,
+        text:
+          `Imported ${added} word(s) from Anki.` +
+          (skippedAlreadyKnown > 0 ? ` Skipped ${skippedAlreadyKnown} already known.` : "") +
+          (failed > 0 ? ` ${failed} failed.` : ""),
         type: "success",
       })
     } catch (err: unknown) {
@@ -246,6 +309,7 @@ export default function Vocab() {
   const closeAnkiModal = () => {
     setShowAnkiModal(false)
     setAnkiMessage(null)
+    resetAnkiFieldSelection()
   }
 
   return (
@@ -509,7 +573,7 @@ export default function Vocab() {
               <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
                 <h3 className="text-sm font-semibold text-gray-800">Import from Anki</h3>
                 <p className="mt-1 text-xs text-gray-500">
-                  Pulls the front field of each note from an Anki deck into your known vocabulary list.
+                  Only mature cards (interval ≥ 21 days) are imported. Pick which Anki field is the word, meaning, and (optionally) hiragana. Words already in your known list are skipped.
                 </p>
                 <div className="mt-3 flex flex-col gap-2">
                   {ankiDecks.length === 0 ? (
@@ -525,21 +589,96 @@ export default function Vocab() {
                     <>
                       <select
                         value={selectedAnkiDeck}
-                        onChange={(e) => setSelectedAnkiDeck(e.target.value)}
+                        onChange={(e) => handleSelectAnkiDeck(e.target.value)}
                         className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#55F] focus:outline-none"
                       >
                         {ankiDecks.map((deck) => (
                           <option key={deck} value={deck}>{deck}</option>
                         ))}
                       </select>
-                      <button
-                        type="button"
-                        onClick={handleImportFromAnki}
-                        disabled={importingAnki || !selectedAnkiDeck}
-                        className="rounded-full border border-[#55F] bg-[#55F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#44E] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {importingAnki ? "Importing..." : "Import from Anki"}
-                      </button>
+
+                      {!ankiPreview ? (
+                        <button
+                          type="button"
+                          onClick={handleLoadAnkiFields}
+                          disabled={loadingAnkiPreview || !selectedAnkiDeck}
+                          className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {loadingAnkiPreview ? "Loading fields..." : "Load fields"}
+                        </button>
+                      ) : ankiPreview.fields.length === 0 ? (
+                        <p className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
+                          This deck has no mature cards (interval ≥ 21 days).
+                        </p>
+                      ) : (
+                        <>
+                          <div className="rounded-lg border border-gray-200 bg-white p-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                              Sample card ({ankiPreview.noteCount} mature)
+                            </p>
+                            <dl className="mt-2 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-xs">
+                              {ankiPreview.fields.map((name) => (
+                                <React.Fragment key={name}>
+                                  <dt className="font-semibold text-gray-700">{name}</dt>
+                                  <dd className="truncate text-gray-600" title={ankiPreview.sample[name] || ""}>
+                                    {ankiPreview.sample[name] || <span className="text-gray-400">(empty)</span>}
+                                  </dd>
+                                </React.Fragment>
+                              ))}
+                            </dl>
+                          </div>
+
+                          <label className="flex flex-col gap-1 text-xs font-semibold text-gray-700">
+                            Lemma field
+                            <select
+                              value={ankiLemmaField}
+                              onChange={(e) => setAnkiLemmaField(e.target.value)}
+                              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-normal text-gray-900 focus:border-[#55F] focus:outline-none"
+                            >
+                              {ankiPreview.fields.map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <label className="flex flex-col gap-1 text-xs font-semibold text-gray-700">
+                            Meaning field
+                            <select
+                              value={ankiMeaningField}
+                              onChange={(e) => setAnkiMeaningField(e.target.value)}
+                              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-normal text-gray-900 focus:border-[#55F] focus:outline-none"
+                            >
+                              <option value="">Select field…</option>
+                              {ankiPreview.fields.map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <label className="flex flex-col gap-1 text-xs font-semibold text-gray-700">
+                            Hiragana field <span className="font-normal text-gray-400">(optional)</span>
+                            <select
+                              value={ankiHiraganaField}
+                              onChange={(e) => setAnkiHiraganaField(e.target.value)}
+                              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-normal text-gray-900 focus:border-[#55F] focus:outline-none"
+                            >
+                              <option value="">(None)</option>
+                              {ankiPreview.fields.map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={handleImportFromAnki}
+                            disabled={importingAnki || !ankiLemmaField || !ankiMeaningField}
+                            className="rounded-full border border-[#55F] bg-[#55F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#44E] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {importingAnki ? "Importing..." : "Import from Anki"}
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
