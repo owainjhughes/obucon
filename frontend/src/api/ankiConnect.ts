@@ -20,7 +20,15 @@ async function invoke<T>(action: string, params?: Record<string, unknown>): Prom
       body: JSON.stringify(body),
     })
   } catch {
-    throw new Error("Could not reach Anki. Make sure Anki is open and the AnkiConnect plugin is installed.")
+    const host = window.location.hostname
+    const onLocalhost = host === "localhost" || host === "127.0.0.1"
+    if (onLocalhost) {
+      throw new Error("Could not reach Anki. Make sure Anki is open and the AnkiConnect plugin is installed.")
+    }
+    throw new Error(
+      `Could not reach Anki from ${window.location.origin}. Either Anki is not running, or AnkiConnect has not whitelisted this site. ` +
+        `In Anki: Tools → Add-ons → AnkiConnect → Config, and add "${window.location.origin}" to "webCorsOriginList", then restart Anki.`,
+    )
   }
 
   if (!response.ok) {

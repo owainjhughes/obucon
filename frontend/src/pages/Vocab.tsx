@@ -626,6 +626,14 @@ export default function Vocab() {
               plugin installed.
             </p>
 
+            {window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" && (
+              <p className="mt-2 text-xs text-gray-500">
+                First time? In Anki: Tools → Add-ons → AnkiConnect → Config, and add{" "}
+                <code className="mx-0.5 rounded bg-gray-100 px-1 py-0.5">"{window.location.origin}"</code>
+                {" "}to <code className="rounded bg-gray-100 px-1 py-0.5">webCorsOriginList</code>, then restart Anki.
+              </p>
+            )}
+
             {ankiMessage && (
               <div
                 className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
