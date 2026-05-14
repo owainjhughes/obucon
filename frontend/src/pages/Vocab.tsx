@@ -55,6 +55,9 @@ export default function Vocab() {
   const [jlptFilter, setJlptFilter] = useState<string>("all")
   const [jlptLevel, setJlptLevel] = useState("N5")
   const [importing, setImporting] = useState(false)
+  const [showJlptModal, setShowJlptModal] = useState(false)
+  const [jlptIncludeEasier, setJlptIncludeEasier] = useState(false)
+  const [jlptMessage, setJlptMessage] = useState<{ text: string; type: "success" | "error" } | null>(null)
   const [editingLemma, setEditingLemma] = useState<string | null>(null)
   const [editMeaning, setEditMeaning] = useState("")
   const [editGradeLevel, setEditGradeLevel] = useState("5")
@@ -121,19 +124,39 @@ export default function Vocab() {
 
   const handleImport = async () => {
     setImporting(true)
-    setError(null)
+    setJlptMessage(null)
+
+    const selectedNum = Number(jlptLevel.replace("N", ""))
+    const levelsToImport = jlptIncludeEasier
+      ? [5, 4, 3, 2, 1].filter((n) => n >= selectedNum)
+      : [selectedNum]
+    const levelLabels = levelsToImport.map((n) => `N${n}`)
 
     try {
-      await apiClient.post("/vocab/bulk", {
-        jlpt_level: jlptLevel,
-        language: "ja",
-      })
+      for (const label of levelLabels) {
+        await apiClient.post("/vocab/bulk", {
+          jlpt_level: label,
+          language: "ja",
+        })
+      }
       await loadVocab()
+      setJlptMessage({
+        text: `Imported ${levelLabels.join(", ")}.`,
+        type: "success",
+      })
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, "Failed to import vocabulary"))
+      setJlptMessage({
+        text: getApiErrorMessage(err, "Failed to import vocabulary"),
+        type: "error",
+      })
     } finally {
       setImporting(false)
     }
+  }
+
+  const closeJlptModal = () => {
+    setShowJlptModal(false)
+    setJlptMessage(null)
   }
 
   const startEditing = (entry: VocabEntry) => {
@@ -339,27 +362,13 @@ export default function Vocab() {
                 <option value="1">JLPT N1</option>
                 <option value="conjugation">Conjugations</option>
               </select>
-              <div className="flex items-center gap-2">
-                <select
-                  value={jlptLevel}
-                  onChange={(e) => setJlptLevel(e.target.value)}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#55F] focus:outline-none"
-                >
-                  <option value="N5">JLPT N5</option>
-                  <option value="N4">JLPT N4</option>
-                  <option value="N3">JLPT N3</option>
-                  <option value="N2">JLPT N2</option>
-                  <option value="N1">JLPT N1</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={handleImport}
-                  disabled={importing}
-                  className="rounded-full border border-[#55F] bg-[#55F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#44E] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {importing ? "Importing..." : "Import JLPT list"}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowJlptModal(true)}
+                className="rounded-full border border-[#55F] bg-[#55F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#44E]"
+              >
+                Import JLPT list
+              </button>
             </div>
 
             {!isMobile && (
@@ -500,6 +509,89 @@ export default function Vocab() {
           )}
         </div>
       </section>
+
+      {showJlptModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={closeJlptModal}
+        >
+          <div
+            className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeJlptModal}
+              aria-label="Close JLPT import"
+              className="absolute right-5 top-5 rounded p-1 text-gray-400 hover:text-gray-700"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-lg font-semibold text-gray-900">Import JLPT vocabulary</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Pulls the full official vocabulary list for the chosen JLPT level into your known words.
+            </p>
+
+            {jlptMessage && (
+              <div
+                className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
+                  jlptMessage.type === "success"
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-red-200 bg-red-50 text-red-700"
+                }`}
+              >
+                {jlptMessage.text}
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-col gap-3">
+              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-700">
+                JLPT level
+                <select
+                  value={jlptLevel}
+                  onChange={(e) => setJlptLevel(e.target.value)}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-normal text-gray-900 focus:border-[#55F] focus:outline-none"
+                >
+                  <option value="N5">JLPT N5</option>
+                  <option value="N4">JLPT N4</option>
+                  <option value="N3">JLPT N3</option>
+                  <option value="N2">JLPT N2</option>
+                  <option value="N1">JLPT N1</option>
+                </select>
+              </label>
+
+              <label className="flex items-start gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={jlptIncludeEasier}
+                  onChange={(e) => setJlptIncludeEasier(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#55F] focus:ring-[#55F]"
+                />
+                <span>Also include easier levels</span>
+              </label>
+
+              <div className="mt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeJlptModal}
+                  className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleImport}
+                  disabled={importing}
+                  className="rounded-full border border-[#55F] bg-[#55F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#44E] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {importing ? "Importing..." : "Import"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAnkiModal && (
         <div
