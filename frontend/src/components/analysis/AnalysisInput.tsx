@@ -5,6 +5,8 @@ import AnalysisOutput from './AnalysisOutput'
 
 type AnalysisMode = 'text' | 'file'
 
+const MAX_CHARS = 20000
+
 interface Token {
   surface: string
   lemma: string
@@ -72,7 +74,9 @@ export default function AnalysisInput() {
     setError('')
   }
 
-  const canAnalyse = mode === 'file' ? Boolean(selectedFile) : Boolean(text.trim())
+  const charCount = [...text].length
+  const isOverLimit = charCount > MAX_CHARS
+  const canAnalyse = mode === 'file' ? Boolean(selectedFile) : Boolean(text.trim()) && !isOverLimit
 
   if (result) {
     return (
@@ -126,6 +130,10 @@ export default function AnalysisInput() {
                 className="mt-2 w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-900 focus:border-[#55F] focus:outline-none focus:ring-2 focus:ring-[#55F]/10 resize-none"
                 placeholder="Paste the text you want to analyse"
               />
+              <div className={`mt-1 flex justify-between text-xs ${isOverLimit ? 'text-red-600' : 'text-gray-400'}`}>
+                <span>{isOverLimit ? `Text exceeds ${MAX_CHARS.toLocaleString()}-character limit` : ''}</span>
+                <span>{charCount.toLocaleString()} / {MAX_CHARS.toLocaleString()}</span>
+              </div>
             </label>
           )}
 

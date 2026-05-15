@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"obucon/internal/helpers"
 	"obucon/internal/lang/ja"
 	"obucon/internal/models"
 	"strings"
+	"unicode/utf8"
 )
 
 type AnalysisResult struct {
@@ -52,6 +54,10 @@ type UpdateKnownWordResult struct {
 func (s *Service) AnalyzeText(ctx context.Context, userID uint, language, text string) (*AnalysisResult, error) {
 	if text == "" {
 		return nil, fmt.Errorf("text cannot be empty")
+	}
+
+	if utf8.RuneCountInString(text) > helpers.MaxExtractedTextChars {
+		return nil, fmt.Errorf("text is too long: maximum is %d characters", helpers.MaxExtractedTextChars)
 	}
 
 	tokens, err := s.tokenizer.Tokenize(text)

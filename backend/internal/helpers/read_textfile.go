@@ -16,7 +16,7 @@ import (
 
 const (
 	MaxUploadFileBytes    int64 = 5 * 1024 * 1024
-	MaxExtractedTextChars       = 200000
+	MaxExtractedTextChars       = 20000
 )
 
 type TextFileExtraction struct {
