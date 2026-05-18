@@ -599,7 +599,7 @@ export default function Vocab() {
           onClick={closeAnkiModal}
         >
           <div
-            className="relative w-full max-w-xl rounded-2xl bg-white p-8 shadow-xl"
+            className="relative w-full max-w-xl rounded-2xl bg-white p-8 shadow-xl max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <button
